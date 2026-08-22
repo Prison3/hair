@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>心尚植发</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="login-view" class="login-wrap">
+    <form id="login-form" class="login-card">
+      <h1>心尚植发</h1>
+      <p class="muted">店员 / 管理员登录</p>
+      <label>用户名<input id="login-username" value="admin" required /></label>
+      <label>密码<input id="login-password" type="password" value="admin123" required /></label>
+      <button type="submit">登录</button>
+      <p id="login-error" class="error"></p>
+    </form>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <aside class="sidebar">
+      <div class="brand">心尚植发</div>
+      <nav>
+        <button data-page="customers" class="nav-btn active">客户</button>
+        <button data-page="projects" class="nav-btn">项目</button>
+        <button data-page="billing" class="nav-btn">开单</button>
+        <button data-page="orders" class="nav-btn">订单</button>
+      </nav>
+      <button id="logout-btn" class="logout">退出</button>
+    </aside>
+    <main class="content">
+      <section id="page-customers" class="page">
+        <header class="page-header">
+          <h2>客户管理</h2>
+          <div class="row">
+            <input id="customer-q" placeholder="搜索姓名/手机号" />
+            <button id="customer-search">搜索</button>
+            <button id="customer-new" class="primary">新建客户</button>
+          </div>
+        </header>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>姓名</th><th>手机</th><th>性别</th><th>年龄</th><th>备注</th><th>操作</th></tr>
+          </thead>
+          <tbody id="customer-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-projects" class="page hidden">
+        <header class="page-header">
+          <h2>植发项目</h2>
+          <button id="project-new" class="primary">新建项目</button>
+        </header>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>名称</th><th>价格</th><th>毛囊单位</th><th>状态</th><th>操作</th></tr>
+          </thead>
+          <tbody id="project-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-billing" class="page hidden">
+        <header class="page-header"><h2>开单</h2></header>
+        <form id="billing-form" class="form-grid">
+          <label>客户
+            <select id="billing-customer" required></select>
+          </label>
+          <label>备注
+            <input id="billing-remark" placeholder="可选" />
+          </label>
+          <div class="full">
+            <h3>选择项目</h3>
+            <div id="billing-projects" class="check-list"></div>
+          </div>
+          <div class="full row between">
+            <strong id="billing-total">合计：¥0</strong>
+            <button type="submit" class="primary">生成订单</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="page-orders" class="page hidden">
+        <header class="page-header">
+          <h2>订单列表</h2>
+          <div class="row">
+            <select id="order-status">
+              <option value="">全部状态</option>
+              <option value="PENDING">待付款</option>
+              <option value="PAID">已付款</option>
+              <option value="DONE">已完成</option>
+              <option value="CANCELLED">已取消</option>
+            </select>
+            <button id="order-refresh">刷新</button>
+          </div>
+        </header>
+        <table>
+          <thead>
+            <tr><th>订单号</th><th>客户</th><th>金额</th><th>状态</th><th>时间</th><th>明细</th><th>操作</th></tr>
+          </thead>
+          <tbody id="order-tbody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="customer-dialog">
+    <form id="customer-form" method="dialog" class="dialog-form">
+      <h3 id="customer-dialog-title">新建客户</h3>
+      <input type="hidden" id="customer-id" />
+      <label>姓名<input id="c-name" required /></label>
+      <label>手机<input id="c-phone" required /></label>
+      <label>性别
+        <select id="c-gender">
+          <option value="">未知</option>
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
+      </label>
+      <label>年龄<input id="c-age" type="number" min="1" max="120" /></label>
+      <label>备注<textarea id="c-notes" rows="3"></textarea></label>
+      <div class="row end">
+        <button type="button" id="customer-cancel">取消</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="project-dialog">
+    <form id="project-form" method="dialog" class="dialog-form">
+      <h3 id="project-dialog-title">新建项目</h3>
+      <input type="hidden" id="project-id" />
+      <label>名称<input id="p-name" required /></label>
+      <label>价格<input id="p-price" type="number" min="0" step="0.01" required /></label>
+      <label>毛囊单位<input id="p-graft" type="number" min="0" value="0" /></label>
+      <label>描述<textarea id="p-desc" rows="3"></textarea></label>
+      <label class="row"><input id="p-active" type="checkbox" checked /> 启用</label>
+      <div class="row end">
+        <button type="button" id="project-cancel">取消</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

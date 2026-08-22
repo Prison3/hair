@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/customersFragment"
+        android:icon="@drawable/ic_nav_customers"
+        android:title="@string/nav_customers" />
+    <item
+        android:id="@+id/projectsFragment"
+        android:icon="@drawable/ic_nav_projects"
+        android:title="@string/nav_projects" />
+    <item
+        android:id="@+id/billingFragment"
+        android:icon="@drawable/ic_nav_billing"
+        android:title="@string/nav_billing" />
+    <item
+        android:id="@+id/ordersFragment"
+        android:icon="@drawable/ic_nav_orders"
+        android:title="@string/nav_orders" />
+</menu>

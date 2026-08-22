@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.HairClinic" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/pine</item>
+        <item name="colorOnPrimary">@color/paper2</item>
+        <item name="colorSecondary">@color/pine2</item>
+        <item name="colorOnSecondary">@color/paper2</item>
+        <item name="colorSurface">@color/paper2</item>
+        <item name="colorOnSurface">@color/ink</item>
+        <item name="android:colorBackground">@color/paper</item>
+        <item name="colorOnBackground">@color/ink</item>
+        <item name="colorError">@color/cinnabar</item>
+        <item name="colorOutline">@color/line</item>
+        <item name="android:statusBarColor">@color/pine</item>
+        <item name="android:navigationBarColor">@color/paper</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="materialButtonStyle">@style/Widget.XinShang.Button</item>
+    </style>
+
+    <style name="Widget.XinShang.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/pine</item>
+        <item name="android:textColor">@color/paper2</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="Widget.XinShang.Button.Ghost" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/line</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">@color/pine</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Text.Brand" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textColor">@color/pine</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">serif</item>
+        <item name="android:textSize">36sp</item>
+    </style>
+
+    <style name="Text.Title" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="Text.BodySoft" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/ink_soft</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+</resources>

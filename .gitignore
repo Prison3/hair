@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+server/data/*.db
+server/data/*.db-*
+.idea/
+*.iml
+local.properties
+.gradle/
+**/build/

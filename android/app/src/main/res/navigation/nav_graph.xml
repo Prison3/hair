@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.hairclinic.app.ui.login.LoginFragment"
+        android:label="登录" />
+    <fragment
+        android:id="@+id/customersFragment"
+        android:name="com.hairclinic.app.ui.customers.CustomersFragment"
+        android:label="客户" />
+    <fragment
+        android:id="@+id/projectsFragment"
+        android:name="com.hairclinic.app.ui.projects.ProjectsFragment"
+        android:label="项目" />
+    <fragment
+        android:id="@+id/billingFragment"
+        android:name="com.hairclinic.app.ui.billing.BillingFragment"
+        android:label="开单" />
+    <fragment
+        android:id="@+id/ordersFragment"
+        android:name="com.hairclinic.app.ui.orders.OrdersFragment"
+        android:label="订单" />
+</navigation>
