@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -26,7 +26,7 @@ class Customer(Base):
     name: Mapped[str] = mapped_column(String(64), nullable=False)
     phone: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     gender: Mapped[str] = mapped_column(String(16), default="")
-    age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    birthday: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

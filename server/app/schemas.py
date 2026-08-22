@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -21,7 +21,7 @@ class CustomerBase(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     phone: str = Field(min_length=1, max_length=32)
     gender: str = ""
-    age: Optional[int] = None
+    birthday: Optional[date] = None
     notes: str = ""
 
 

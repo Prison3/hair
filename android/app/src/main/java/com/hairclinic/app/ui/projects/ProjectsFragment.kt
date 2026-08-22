@@ -51,7 +51,7 @@ class ProjectsFragment : Fragment() {
                     )
                 })
                 binding.emptyText.isVisible = list.isEmpty()
-                binding.emptyText.text = "暂无项目，点击右上角新建"
+                binding.emptyText.text = "暂无项目，点击下方添加"
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
             }

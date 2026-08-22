@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from .auth import hash_password
 from .database import Base, SessionLocal, engine
@@ -12,6 +13,14 @@ from .models import Admin, Project
 from .routers import auth, customers, orders, projects
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+def migrate_schema() -> None:
+    """SQLite 轻量迁移：age -> birthday。"""
+    with engine.begin() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(customers)")).fetchall()]
+        if cols and "birthday" not in cols:
+            conn.execute(text("ALTER TABLE customers ADD COLUMN birthday DATE"))
 
 
 def seed_data() -> None:
@@ -57,6 +66,7 @@ def seed_data() -> None:
 
 def create_app() -> FastAPI:
     Base.metadata.create_all(bind=engine)
+    migrate_schema()
     seed_data()
 
     app = FastAPI(title="心尚植发", version="1.0.0")

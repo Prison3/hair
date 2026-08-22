@@ -13,6 +13,7 @@ object Session {
     private const val PREF = "hair_clinic"
     private const val KEY_TOKEN = "token"
     private const val KEY_BASE_URL = "base_url"
+    private const val KEY_USERNAME = "username"
 
     fun saveToken(context: Context, token: String) {
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
@@ -23,6 +24,16 @@ object Session {
 
     fun token(context: Context): String =
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(KEY_TOKEN, "") ?: ""
+
+    fun saveUsername(context: Context, username: String) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_USERNAME, username)
+            .apply()
+    }
+
+    fun username(context: Context): String =
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(KEY_USERNAME, "") ?: ""
 
     fun saveBaseUrl(context: Context, url: String) {
         val normalized = normalizeBaseUrl(url)

@@ -4,12 +4,14 @@ data class TokenOut(val access_token: String, val token_type: String = "bearer")
 
 data class LoginIn(val username: String, val password: String)
 
+data class MeOut(val id: Int, val username: String)
+
 data class Customer(
     val id: Int? = null,
     val name: String,
     val phone: String,
     val gender: String = "",
-    val age: Int? = null,
+    val birthday: String? = null,
     val notes: String = "",
     val created_at: String? = null,
 )

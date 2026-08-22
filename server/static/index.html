@@ -41,7 +41,7 @@
         </header>
         <table>
           <thead>
-            <tr><th>ID</th><th>姓名</th><th>手机</th><th>性别</th><th>年龄</th><th>备注</th><th>操作</th></tr>
+            <tr><th>ID</th><th>姓名</th><th>手机</th><th>性别</th><th>生日</th><th>备注</th><th>操作</th></tr>
           </thead>
           <tbody id="customer-tbody"></tbody>
         </table>
@@ -111,13 +111,12 @@
       <label>姓名<input id="c-name" required /></label>
       <label>手机<input id="c-phone" required /></label>
       <label>性别
-        <select id="c-gender">
-          <option value="">未知</option>
-          <option value="男">男</option>
-          <option value="女">女</option>
-        </select>
+        <div class="row" style="gap:16px;margin-top:4px">
+          <label class="row"><input type="radio" name="c-gender" value="男" /> 男</label>
+          <label class="row"><input type="radio" name="c-gender" value="女" /> 女</label>
+        </div>
       </label>
-      <label>年龄<input id="c-age" type="number" min="1" max="120" /></label>
+      <label>生日<input id="c-birthday" type="date" /></label>
       <label>备注<textarea id="c-notes" rows="3"></textarea></label>
       <div class="row end">
         <button type="button" id="customer-cancel">取消</button>

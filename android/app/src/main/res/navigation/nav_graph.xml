@@ -13,6 +13,10 @@
         android:name="com.hairclinic.app.ui.customers.CustomersFragment"
         android:label="客户" />
     <fragment
+        android:id="@+id/customerEditFragment"
+        android:name="com.hairclinic.app.ui.customers.CustomerEditFragment"
+        android:label="编辑客户" />
+    <fragment
         android:id="@+id/projectsFragment"
         android:name="com.hairclinic.app.ui.projects.ProjectsFragment"
         android:label="项目" />

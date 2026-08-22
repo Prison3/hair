@@ -13,6 +13,9 @@ interface ApiService {
     @POST("api/auth/login")
     suspend fun login(@Body body: LoginIn): TokenOut
 
+    @GET("api/auth/me")
+    suspend fun me(): MeOut
+
     @GET("api/customers")
     suspend fun listCustomers(@Query("q") q: String? = null): List<Customer>
 

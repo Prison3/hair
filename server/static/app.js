@@ -79,7 +79,7 @@ async function loadCustomers() {
       <td>${escapeHtml(c.name)}</td>
       <td>${escapeHtml(c.phone)}</td>
       <td>${escapeHtml(c.gender || "-")}</td>
-      <td>${c.age ?? "-"}</td>
+      <td>${escapeHtml(c.birthday || "-")}</td>
       <td>${escapeHtml(c.notes || "")}</td>
       <td class="row">
         <button data-edit-customer="${c.id}">编辑</button>
@@ -95,8 +95,10 @@ function openCustomerDialog(customer) {
   $("#customer-id").value = customer?.id || "";
   $("#c-name").value = customer?.name || "";
   $("#c-phone").value = customer?.phone || "";
-  $("#c-gender").value = customer?.gender || "";
-  $("#c-age").value = customer?.age ?? "";
+  $$('input[name="c-gender"]').forEach((el) => {
+    el.checked = el.value === (customer?.gender || "");
+  });
+  $("#c-birthday").value = customer?.birthday || "";
   $("#c-notes").value = customer?.notes || "";
   $("#customer-dialog").showModal();
 }
@@ -104,11 +106,12 @@ function openCustomerDialog(customer) {
 async function saveCustomer(e) {
   e.preventDefault();
   const id = $("#customer-id").value;
+  const genderEl = $$('input[name="c-gender"]').find((el) => el.checked);
   const body = {
     name: $("#c-name").value.trim(),
     phone: $("#c-phone").value.trim(),
-    gender: $("#c-gender").value,
-    age: $("#c-age").value ? Number($("#c-age").value) : null,
+    gender: genderEl ? genderEl.value : "",
+    birthday: $("#c-birthday").value || null,
     notes: $("#c-notes").value.trim(),
   };
   if (id) await api(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(body) });
