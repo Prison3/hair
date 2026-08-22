@@ -5,7 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -13,7 +13,6 @@ import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.LoginIn
 import com.hairclinic.app.data.Session
-import com.hairclinic.app.databinding.DialogServerSettingsBinding
 import com.hairclinic.app.databinding.FragmentLoginBinding
 import kotlinx.coroutines.launch
 import java.net.ConnectException
@@ -23,6 +22,7 @@ import java.net.UnknownHostException
 class LoginFragment : Fragment() {
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
+    private var advancedOpen = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
@@ -30,8 +30,40 @@ class LoginFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.settingsBtn.setOnClickListener { showServerSettings() }
+        binding.serverUrl.setText(Session.displayBaseUrl(requireContext()))
+        binding.advancedPanel.isVisible = false
+        binding.advancedBtn.text = "Advanced ▸"
+
+        binding.advancedBtn.setOnClickListener {
+            advancedOpen = !advancedOpen
+            binding.advancedPanel.isVisible = advancedOpen
+            binding.advancedBtn.text = if (advancedOpen) "Advanced ▾" else "Advanced ▸"
+            if (advancedOpen) {
+                binding.serverUrl.setText(Session.displayBaseUrl(requireContext()))
+            }
+        }
+
+        binding.saveServerBtn.setOnClickListener {
+            val url = binding.serverUrl.text?.toString().orEmpty()
+            Session.saveBaseUrl(requireContext(), url)
+            Toast.makeText(
+                requireContext(),
+                "已保存：${Session.displayBaseUrl(requireContext())}",
+                Toast.LENGTH_SHORT,
+            ).show()
+            advancedOpen = false
+            binding.advancedPanel.isVisible = false
+            binding.advancedBtn.text = "Advanced ▸"
+        }
+
         binding.loginBtn.setOnClickListener {
+            // 若展开面板有改动但未点保存，登录前一并写入
+            if (advancedOpen) {
+                Session.saveBaseUrl(
+                    requireContext(),
+                    binding.serverUrl.text?.toString().orEmpty(),
+                )
+            }
             val username = binding.username.text?.toString()?.trim().orEmpty()
             val password = binding.password.text?.toString().orEmpty()
             binding.errorText.text = ""
@@ -48,29 +80,11 @@ class LoginFragment : Fragment() {
                         is SocketTimeoutException -> "连接超时：请检查服务器地址，或关闭路由器「访客隔离」"
                         else -> e.message ?: "登录失败"
                     }
-                    binding.errorText.text = "$msg\n当前: ${Session.baseUrl(requireContext())}"
+                    binding.errorText.text = "$msg\n当前: ${Session.displayBaseUrl(requireContext())}"
                     Toast.makeText(requireContext(), "登录失败", Toast.LENGTH_SHORT).show()
                 }
             }
         }
-    }
-
-    private fun showServerSettings() {
-        val dialogBinding = DialogServerSettingsBinding.inflate(layoutInflater)
-        dialogBinding.serverUrlInput.setText(Session.baseUrl(requireContext()))
-        AlertDialog.Builder(requireContext())
-            .setView(dialogBinding.root)
-            .setPositiveButton("保存") { _, _ ->
-                val url = dialogBinding.serverUrlInput.text?.toString().orEmpty()
-                Session.saveBaseUrl(requireContext(), url)
-                Toast.makeText(
-                    requireContext(),
-                    "已保存：${Session.baseUrl(requireContext())}",
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
-            .setNegativeButton("取消", null)
-            .show()
     }
 
     override fun onDestroyView() {

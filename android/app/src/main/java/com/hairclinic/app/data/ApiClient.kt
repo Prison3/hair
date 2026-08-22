@@ -50,6 +50,15 @@ object Session {
         return normalizeBaseUrl(saved ?: BuildConfig.BASE_URL)
     }
 
+    fun displayBaseUrl(context: Context): String = stripScheme(baseUrl(context))
+
+    fun stripScheme(url: String): String {
+        var u = url.trim()
+        if (u.startsWith("https://")) u = u.removePrefix("https://")
+        else if (u.startsWith("http://")) u = u.removePrefix("http://")
+        return u.trimEnd('/')
+    }
+
     fun clear(context: Context) {
         val prefs = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
         val base = prefs.getString(KEY_BASE_URL, null)
