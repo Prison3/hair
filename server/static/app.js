@@ -323,11 +323,27 @@ document.addEventListener("change", (e) => {
   if (e.target.id === "order-status") loadOrders();
 });
 
+async function loadAppDownload() {
+  try {
+    const info = await fetch("/api/app/info").then((res) => {
+      if (!res.ok) throw new Error("no apk");
+      return res.json();
+    });
+    const sizeMb = (info.size_bytes / 1048576).toFixed(1);
+    const el = $("#app-download");
+    el.innerHTML = `<a href="${info.download_url}">下载 Android 客户端 v${info.version_name}</a>（${sizeMb} MB）`;
+    el.classList.remove("hidden");
+  } catch (_) {
+    /* 安装包未发布时不展示 */
+  }
+}
+
 $("#login-form").addEventListener("submit", login);
 $("#customer-form").addEventListener("submit", saveCustomer);
 $("#project-form").addEventListener("submit", saveProject);
 $("#billing-form").addEventListener("submit", submitBilling);
 
+loadAppDownload();
 if (state.token) {
   showApp(true);
   switchPage("customers");

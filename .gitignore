@@ -6,6 +6,8 @@ venv/
 .env
 server/data/*.db
 server/data/*.db-*
+server/downloads/*.apk
+server/downloads/app_version.json
 .idea/
 *.iml
 local.properties

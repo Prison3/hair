@@ -39,6 +39,8 @@ body {
   box-shadow: 0 10px 30px rgba(28, 43, 51, 0.06);
 }
 .login-card h1 { margin: 0; font-size: 1.5rem; }
+.app-download { text-align: center; margin: 4px 0 0; font-size: 0.9rem; }
+.app-download a { color: var(--accent); }
 
 label {
   display: grid;

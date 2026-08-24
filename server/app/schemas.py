@@ -101,3 +101,12 @@ class OrderOut(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     status: str
+
+
+class AppReleaseOut(BaseModel):
+    version_name: str
+    version_code: int
+    filename: str
+    size_bytes: int
+    updated_at: str
+    download_url: str

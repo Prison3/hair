@@ -1,6 +1,29 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
+def gitRepoRoot = rootProject.projectDir.parentFile
+
+def gitOutput(List<String> args) {
+    try {
+        def proc = (['git', '-C', gitRepoRoot.absolutePath] + args).execute()
+        proc.waitFor()
+        return proc.text.trim()
+    } catch (Exception ignored) {
+        return ""
+    }
+}
+
+def gitVersionCode = {
+    def n = gitOutput(['rev-list', '--count', 'HEAD'])
+    return n.isInteger() ? n.toInteger() : 1
+}()
+
+def gitVersionName = {
+    def desc = gitOutput(['describe', '--tags', '--always'])
+    if (desc.isEmpty()) desc = "dev"
+    return "${gitVersionCode} - ${desc}".toString()
+}()
+
 android {
     namespace 'com.hairclinic.app'
     compileSdk 34
@@ -9,15 +32,17 @@ android {
         applicationId "com.hairclinic.app"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
-        buildConfigField "String", "BASE_URL", '"http://192.168.100.236:8000/"'
+        versionCode gitVersionCode
+        versionName gitVersionName
+        buildConfigField "String", "BASE_URL", '"http://8.145.53.212:8000/"'
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // 内部分发：无正式签名时使用 debug 证书
+            signingConfig signingConfigs.debug
         }
     }
     compileOptions {

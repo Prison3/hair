@@ -10,7 +10,7 @@ from sqlalchemy import text
 from .auth import hash_password
 from .database import Base, SessionLocal, engine
 from .models import Admin, Project
-from .routers import auth, customers, orders, projects
+from .routers import app_release, auth, customers, orders, projects
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -81,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(customers.router)
     app.include_router(projects.router)
     app.include_router(orders.router)
+    app.include_router(app_release.router)
 
     if STATIC_DIR.exists():
         app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

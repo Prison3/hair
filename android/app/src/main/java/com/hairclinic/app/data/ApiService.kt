@@ -48,4 +48,7 @@ interface ApiService {
 
     @PATCH("api/orders/{id}/status")
     suspend fun updateOrderStatus(@Path("id") id: Int, @Body body: OrderStatusUpdate): Order
+
+    @GET("api/app/info")
+    suspend fun appInfo(): AppReleaseInfo
 }

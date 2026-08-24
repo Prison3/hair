@@ -9,18 +9,23 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
+import com.hairclinic.app.BuildConfig
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Session
 import com.hairclinic.app.databinding.ActivityMainBinding
+import com.hairclinic.app.update.AppUpdateHelper
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private lateinit var appUpdate: AppUpdateHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        appUpdate = AppUpdateHelper(this)
+        appUpdate.checkOnLaunch()
 
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
         val navController = navHost.navController
@@ -68,12 +73,21 @@ class MainActivity : AppCompatActivity() {
         if (name.isNotBlank() && name != "…" && name != "用户") {
             popup.menu.add(0, 0, 0, "当前：$name").isEnabled = false
         }
-        popup.menu.add(0, 1, 1, "退出登录")
+        popup.menu.add(0, 2, 1, "当前版本 v${BuildConfig.VERSION_NAME}").isEnabled = false
+        popup.menu.add(0, 3, 2, "检查更新")
+        popup.menu.add(0, 1, 3, "退出登录")
         popup.setOnMenuItemClickListener { item ->
-            if (item.itemId == 1) {
-                confirmLogout()
-                true
-            } else false
+            when (item.itemId) {
+                3 -> {
+                    appUpdate.checkFromMenu()
+                    true
+                }
+                1 -> {
+                    confirmLogout()
+                    true
+                }
+                else -> false
+            }
         }
         popup.show()
     }
@@ -95,5 +109,10 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    override fun onDestroy() {
+        if (::appUpdate.isInitialized) appUpdate.dismiss()
+        super.onDestroy()
     }
 }

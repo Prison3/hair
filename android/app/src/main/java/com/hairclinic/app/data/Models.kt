@@ -56,3 +56,12 @@ data class Order(
 )
 
 data class OrderStatusUpdate(val status: String)
+
+data class AppReleaseInfo(
+    val version_code: Int = 0,
+    val version_name: String = "",
+    val download_url: String = "",
+    val size_bytes: Long = 0,
+    val filename: String = "",
+    val updated_at: String = "",
+)
