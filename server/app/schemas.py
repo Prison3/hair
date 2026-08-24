@@ -10,6 +10,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    username: str = ""
+    role: str = "admin"
+    role_label: str = "管理员"
 
 
 class LoginIn(BaseModel):
@@ -20,6 +23,8 @@ class LoginIn(BaseModel):
 class MeOut(BaseModel):
     id: int
     username: str
+    role: str = "admin"
+    role_label: str = "管理员"
 
 
 class AccountUpdateIn(BaseModel):
@@ -33,6 +38,66 @@ class AccountUpdateOut(BaseModel):
     username: str
     access_token: str
     token_type: str = "bearer"
+    role: str = "admin"
+    role_label: str = "管理员"
+
+
+class StaffCreate(BaseModel):
+    username: str = Field(min_length=2, max_length=64)
+    password: str = Field(min_length=6, max_length=64)
+    role: str = "manager"
+
+    @field_validator("username")
+    @classmethod
+    def trim_username(cls, value: str) -> str:
+        name = (value or "").strip()
+        if not name:
+            raise ValueError("请填写用户名")
+        return name
+
+    @field_validator("role")
+    @classmethod
+    def check_role(cls, value: str) -> str:
+        role = (value or "manager").strip()
+        if role not in ("admin", "manager"):
+            raise ValueError("角色须为管理员或店长")
+        return role
+
+
+class StaffUpdate(BaseModel):
+    username: Optional[str] = Field(default=None, min_length=2, max_length=64)
+    password: Optional[str] = Field(default=None, min_length=6, max_length=64)
+    role: Optional[str] = None
+
+    @field_validator("username")
+    @classmethod
+    def trim_username(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        name = value.strip()
+        if not name:
+            raise ValueError("请填写用户名")
+        return name
+
+    @field_validator("role")
+    @classmethod
+    def check_role(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        role = value.strip()
+        if role not in ("admin", "manager"):
+            raise ValueError("角色须为管理员或店长")
+        return role
+
+
+class StaffOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    role: str = "manager"
+    role_label: str = "店长"
+    created_at: datetime
 
 
 class CustomerBase(BaseModel):
@@ -86,15 +151,37 @@ class CustomerVisitOut(BaseModel):
 
 
 PROJECT_UNITS = ("支", "个", "盒", "次")
+STOCK_UNITS = ("支", "个", "盒", "次", "套")
 
 
-def normalize_unit(value: str) -> str:
+def normalize_unit(value: str, allowed: tuple[str, ...] = PROJECT_UNITS) -> str:
     unit = (value or "个").strip() or "个"
     if unit == "单位":
         unit = "次"
-    if unit not in PROJECT_UNITS:
-        raise ValueError("单位须为：支 / 个 / 盒 / 次")
+    if unit not in allowed:
+        raise ValueError("单位须为：" + " / ".join(allowed))
     return unit
+
+
+class ProjectMedicineIn(BaseModel):
+    item_id: int
+    quantity: int = Field(ge=1)
+    unit: str = Field(default="个", max_length=16)
+
+    @field_validator("unit")
+    @classmethod
+    def check_unit(cls, value: str) -> str:
+        return normalize_unit(value, STOCK_UNITS)
+
+
+class ProjectMedicineOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    item_id: int
+    item_name: str
+    quantity: int
+    unit: str = "个"
 
 
 class ProjectBase(BaseModel):
@@ -112,11 +199,11 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    pass
+    medicines: List[ProjectMedicineIn] = Field(min_length=1)
 
 
 class ProjectUpdate(ProjectBase):
-    pass
+    medicines: List[ProjectMedicineIn] = Field(min_length=1)
 
 
 class ProjectOut(ProjectBase):
@@ -126,6 +213,7 @@ class ProjectOut(ProjectBase):
     created_at: datetime
     stock_qty: int = 0
     cost_price: Decimal = Decimal("0")
+    medicines: List[ProjectMedicineOut] = Field(default_factory=list)
 
 
 STOCK_IN = "IN"
@@ -140,7 +228,7 @@ class StockItemIn(BaseModel):
     def trim_name(cls, value: str) -> str:
         name = (value or "").strip()
         if not name:
-            raise ValueError("请填写产品名")
+            raise ValueError("请填写药品名")
         return name
 
 
@@ -154,6 +242,17 @@ class StockItemOut(BaseModel):
     stock_qty: int = 0
     cost_price: Decimal = Decimal("0")
     created_at: datetime
+
+    @field_validator("spec", mode="before")
+    @classmethod
+    def fill_spec(cls, value):
+        return value or ""
+
+    @field_validator("unit", mode="before")
+    @classmethod
+    def fill_unit(cls, value):
+        unit = (value or "").strip()
+        return unit if unit and unit != "单位" else "个"
 
 
 class StockInBody(BaseModel):
@@ -178,12 +277,12 @@ class StockInBody(BaseModel):
     @field_validator("unit")
     @classmethod
     def check_unit(cls, value: str) -> str:
-        return normalize_unit(value)
+        return normalize_unit(value, STOCK_UNITS)
 
     @model_validator(mode="after")
     def need_product(self):
         if not self.item_id and not self.name:
-            raise ValueError("请选择产品")
+            raise ValueError("请选择药品")
         return self
 
 
@@ -206,11 +305,23 @@ class StockMovementOut(BaseModel):
     item_name: str
     kind: str
     quantity: int
+    unit: str = "个"
     unit_cost: Decimal
     remark: str = ""
     inbound_no: str = ""
     moved_at: Optional[date] = None
     created_at: datetime
+
+    @field_validator("unit", mode="before")
+    @classmethod
+    def fill_unit(cls, value):
+        unit = (value or "").strip()
+        return unit if unit and unit != "单位" else "个"
+
+    @field_validator("remark", "inbound_no", mode="before")
+    @classmethod
+    def fill_text(cls, value):
+        return value or ""
 
 
 class OrderItemIn(BaseModel):

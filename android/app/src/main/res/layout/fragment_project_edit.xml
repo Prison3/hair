@@ -54,7 +54,7 @@
                 style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="套餐名称"
+                android:hint="项目名"
                 app:startIconDrawable="@drawable/ic_nav_projects">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/inputName"
@@ -80,89 +80,54 @@
                     android:textColor="@color/ink"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
 
-            <LinearLayout
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
+                android:text="组成药品"
+                android:textColor="@color/ink"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.XinShang.TextInput"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="7dp"
-                    android:layout_weight="1"
-                    android:hint="数量"
-                    app:startIconDrawable="@drawable/ic_form_graft">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputGraft"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:textColor="@color/ink"
-                        android:textSize="15sp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.XinShang.TextInput"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="7dp"
-                    android:layout_weight="1"
-                    android:hint="单位"
-                    app:endIconMode="dropdown_menu">
-                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                        android:id="@+id/inputUnit"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="none"
-                        android:textColor="@color/ink"
-                        android:textSize="15sp" />
-                </com.google.android.material.textfield.TextInputLayout>
-            </LinearLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.XinShang.TextInput"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="描述（可选）"
-                app:startIconDrawable="@drawable/ic_form_note">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/inputDesc"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:inputType="textMultiLine"
-                    android:minLines="3"
-                    android:textColor="@color/ink"
-                    android:textSize="15sp" />
-            </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginTop="4dp"
+                android:text="一个项目由多种药品组成，请设置每种药品的剂量"
+                android:textColor="@color/ink_soft"
+                android:textSize="13sp" />
 
             <LinearLayout
+                android:id="@+id/medicineBox"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/medicineEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="还没有药品，请点击下方添加"
+                android:textColor="@color/ink_soft"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/addMedicineBtn"
+                style="@style/Widget.XinShang.Button.Ghost"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
                 android:layout_marginTop="12dp"
-                android:background="@drawable/bg_form_panel"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="14dp">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="启用该套餐"
-                    android:textColor="@color/ink"
-                    android:textSize="15sp" />
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/inputActive"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    app:thumbTint="@color/pine"
-                    app:trackTint="@color/pine_soft" />
-            </LinearLayout>
+                android:text="添加药品" />
         </LinearLayout>
 
         <LinearLayout

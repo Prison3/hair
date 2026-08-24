@@ -77,11 +77,13 @@ def stock_in(
     if item_id:
         item = db.get(StockItem, item_id)
         if not item:
-            raise HTTPException(status_code=404, detail="产品不存在")
+            raise HTTPException(status_code=404, detail="药品不存在")
+        if unit:
+            item.unit = unit
     else:
         name = (name or "").strip()
         if not name:
-            raise HTTPException(status_code=400, detail="请选择产品")
+            raise HTTPException(status_code=400, detail="请选择药品")
         item = get_or_create_item(db, name, unit, spec)
     qty = int(quantity)
     cost = _money(unit_cost or 0)
@@ -97,6 +99,7 @@ def stock_in(
         item_name=item.name,
         kind=STOCK_IN,
         quantity=qty,
+        unit=unit or item.unit or "个",
         unit_cost=cost,
         remark="",
         moved_at=moved_at or date.today(),
@@ -128,6 +131,7 @@ def stock_out(
         item_name=item.name,
         kind=STOCK_OUT,
         quantity=qty,
+        unit=item.unit or "个",
         unit_cost=_money(item.cost_price or 0),
         remark=remark or "",
         moved_at=moved_at or date.today(),

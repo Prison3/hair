@@ -16,6 +16,7 @@ class Admin(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), default="admin", nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -49,6 +50,28 @@ class Project(Base):
     cost_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    medicines: Mapped[List["ProjectMedicine"]] = relationship(
+        "ProjectMedicine",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        order_by="ProjectMedicine.id",
+    )
+
+
+class ProjectMedicine(Base):
+    __tablename__ = "project_medicines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"), nullable=False, index=True)
+    item_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    unit: Mapped[str] = mapped_column(String(16), default="个")
+
+    project: Mapped["Project"] = relationship("Project", back_populates="medicines")
 
 
 class StockItem(Base):
@@ -119,5 +142,6 @@ class StockMovement(Base):
     remark: Mapped[str] = mapped_column(Text, default="")
     moved_at: Mapped[date] = mapped_column(Date, nullable=False, index=True, default=date.today)
     inbound_no: Mapped[str] = mapped_column(String(32), default="", index=True)
+    unit: Mapped[str] = mapped_column(String(16), default="个")
     created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("admins.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -14,7 +14,6 @@ import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Project
 import com.hairclinic.app.databinding.FragmentListBinding
-import com.hairclinic.app.ui.customers.BadgeTone
 import com.hairclinic.app.ui.customers.Item
 import com.hairclinic.app.ui.customers.SimpleAdapter
 import kotlinx.coroutines.launch
@@ -31,7 +30,7 @@ class ProjectsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "项目"
-        binding.pageSubtitle.text = "植发套餐与价格"
+        binding.pageSubtitle.text = "由药品组成的项目与价格"
         binding.addBtn.text = "添加项目"
         binding.searchRow.isVisible = false
         binding.list.layoutManager = LinearLayoutManager(requireContext())
@@ -55,11 +54,10 @@ class ProjectsFragment : Fragment() {
                 val list = ApiClient.get(requireContext()).listProjects()
                 adapter.submit(list.map { p ->
                     val price = ProjectEditFragment.formatPrice(p.price)
+                    val meds = p.medicineText()
                     Item(
                         title = p.name,
-                        subtitle = "¥$price · ${p.specText()}\n${p.description.ifBlank { "无描述" }}",
-                        badge = if (p.active) "启用" else "停用",
-                        badgeTone = if (p.active) BadgeTone.SUCCESS else BadgeTone.MUTED,
+                        subtitle = if (meds.isBlank()) "¥$price" else "¥$price\n$meds",
                         onClick = { openEditor(p) },
                     )
                 })

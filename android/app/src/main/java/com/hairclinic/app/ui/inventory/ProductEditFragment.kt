@@ -31,7 +31,7 @@ class ProductEditFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         itemId = arguments?.getInt(ARG_ID, -1) ?: -1
         val isEdit = itemId > 0
-        binding.pageTitle.text = if (isEdit) "编辑产品" else "录入产品"
+        binding.pageTitle.text = if (isEdit) "编辑药品" else "录入药品"
         if (isEdit) {
             binding.inputName.setText(arguments?.getString(ARG_NAME).orEmpty())
         }
@@ -65,9 +65,9 @@ class ProductEditFragment : Fragment() {
 
     private fun confirmDelete() {
         if (itemId <= 0) return
-        val name = binding.inputName.text?.toString()?.trim().orEmpty().ifBlank { "该产品" }
+        val name = binding.inputName.text?.toString()?.trim().orEmpty().ifBlank { "该药品" }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("删除产品")
+            .setTitle("删除药品")
             .setMessage("确定删除「$name」？相关入库记录也会一起删除。")
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ -> delete() }
@@ -89,7 +89,7 @@ class ProductEditFragment : Fragment() {
     private fun save() {
         val name = binding.inputName.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
-            Toast.makeText(requireContext(), "请填写产品名", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "请填写药品名", Toast.LENGTH_SHORT).show()
             return
         }
         val body = StockItemWrite(name = name)

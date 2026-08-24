@@ -5,7 +5,6 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Session
 import com.hairclinic.app.databinding.ActivityMainBinding
@@ -26,8 +25,13 @@ class MainActivity : AppCompatActivity() {
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
         val navController = navHost.navController
         binding.bottomNav.setupWithNavController(navController)
+        applyRoleTabs()
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            if (!Session.isAllowedDestination(this, destination.id) && destination.id != R.id.loginFragment) {
+                navController.navigate(Session.homeDestination(this))
+                return@addOnDestinationChangedListener
+            }
             val isLogin = destination.id == R.id.loginFragment
             val isEdit = destination.id == R.id.customerEditFragment ||
                 destination.id == R.id.projectEditFragment ||
@@ -44,7 +48,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (Session.token(this).isNotBlank() && navController.currentDestination?.id == R.id.loginFragment) {
-            navController.navigate(R.id.customersFragment)
+            navController.navigate(Session.homeDestination(this))
+        }
+        refreshRole()
+    }
+
+    fun applyRoleTabs() {
+        binding.bottomNav.setAllowedDestinations(Session.allowedNavIds(this))
+    }
+
+    fun refreshRole() {
+        if (Session.token(this).isBlank()) return
+        lifecycleScope.launch {
+            try {
+                val me = ApiClient.get(this@MainActivity).me()
+                Session.saveUsername(this@MainActivity, me.username)
+                Session.saveRole(this@MainActivity, me.role)
+                applyRoleTabs()
+                binding.userChip.text = me.username
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -55,15 +78,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         binding.userChip.text = "…"
-        lifecycleScope.launch {
-            try {
-                val me = ApiClient.get(this@MainActivity).me()
-                Session.saveUsername(this@MainActivity, me.username)
-                binding.userChip.text = me.username
-            } catch (_: Exception) {
-                binding.userChip.text = "用户"
-            }
-        }
+        refreshRole()
     }
 
     override fun onDestroy() {

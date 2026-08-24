@@ -62,7 +62,7 @@ class StockFragment : Fragment() {
                     row.moveKind.setBackgroundResource(
                         if (inbound) R.drawable.bg_badge else R.drawable.bg_badge_warn
                     )
-                    row.moveQty.text = "${if (inbound) "+" else "-"}${m.quantity}"
+                    row.moveQty.text = "${if (inbound) "+" else "-"}${m.qtyText()}"
                     row.moveTime.text = if (inbound) m.inboundNoText() else m.timeText()
                     val cost = if (m.unit_cost > 0) "¥${ProjectEditFragment.formatPrice(m.unit_cost)}" else ""
                     row.moveMeta.text = listOf(m.item_name, cost, m.remark)
@@ -77,7 +77,7 @@ class StockFragment : Fragment() {
 
     private fun bindItem(item: StockItem) {
         binding.pageTitle.text = item.name
-        binding.stockQtyText.text = "库存 ${item.stock_qty}"
+        binding.stockQtyText.text = "库存 ${item.stock_qty}${item.unitLabel()}"
         binding.costPriceText.text = item.costText()
     }
 

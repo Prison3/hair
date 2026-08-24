@@ -64,7 +64,9 @@ class MeFragment : Fragment() {
         val name = Session.username(requireContext()).ifBlank { "用户" }
         binding.usernameText.text = name
         binding.avatarLetter.text = name.first().toString()
-        binding.accountHint.text = "当前账号：$name。可修改用户名和登录密码。"
+        val role = if (Session.isAdmin(requireContext())) "管理员" else "店长"
+        binding.roleText.text = "心尚植发 · $role"
+        binding.accountHint.text = "当前账号：$name（$role）。可修改用户名和登录密码。"
     }
 
     private fun checkUpdate(silent: Boolean = false) {
@@ -161,6 +163,8 @@ class MeFragment : Fragment() {
                         )
                         Session.saveToken(requireContext(), result.access_token)
                         Session.saveUsername(requireContext(), result.username)
+                        Session.saveRole(requireContext(), result.role)
+                        (activity as? MainActivity)?.applyRoleTabs()
                         (activity as? MainActivity)?.refreshUsername()
                         refreshProfile()
                         toast("账号已更新")

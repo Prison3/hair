@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from .auth import hash_password
+from .auth import ROLE_ADMIN, ROLE_MANAGER, hash_password
 from .database import Base, SessionLocal, engine
 from .models import Admin, Project
 from .stock import backfill_inbound_nos
@@ -41,9 +41,25 @@ def migrate_schema() -> None:
             conn.execute(text("ALTER TABLE stock_items ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
         if icols and "spec" not in icols:
             conn.execute(text("ALTER TABLE stock_items ADD COLUMN spec VARCHAR(64) DEFAULT ''"))
+        if icols:
+            conn.execute(
+                text("UPDATE stock_items SET unit = '个' WHERE unit IS NULL OR unit = '' OR unit = '单位'")
+            )
         mcols = [row[1] for row in conn.execute(text("PRAGMA table_info(stock_movements)")).fetchall()]
         if mcols and "inbound_no" not in mcols:
             conn.execute(text("ALTER TABLE stock_movements ADD COLUMN inbound_no VARCHAR(32) DEFAULT ''"))
+        mcols = [row[1] for row in conn.execute(text("PRAGMA table_info(stock_movements)")).fetchall()]
+        if mcols and "unit" not in mcols:
+            conn.execute(text("ALTER TABLE stock_movements ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
+        if mcols:
+            conn.execute(
+                text("UPDATE stock_movements SET unit = '个' WHERE unit IS NULL OR unit = '' OR unit = '单位'")
+            )
+        acols = [row[1] for row in conn.execute(text("PRAGMA table_info(admins)")).fetchall()]
+        if acols and "role" not in acols:
+            conn.execute(text("ALTER TABLE admins ADD COLUMN role VARCHAR(16) DEFAULT 'admin'"))
+        if acols:
+            conn.execute(text("UPDATE admins SET role = 'admin' WHERE role IS NULL OR role = ''"))
 
 
 def seed_data() -> None:
@@ -54,6 +70,18 @@ def seed_data() -> None:
                 Admin(
                     username="admin",
                     password_hash=hash_password("admin123"),
+                    role=ROLE_ADMIN,
+                )
+            )
+        for row in db.query(Admin).all():
+            if not (row.role or "").strip():
+                row.role = ROLE_ADMIN
+        if not db.query(Admin).filter(Admin.username == "manager").first():
+            db.add(
+                Admin(
+                    username="manager",
+                    password_hash=hash_password("manager123"),
+                    role=ROLE_MANAGER,
                 )
             )
         if db.query(Project).count() == 0:

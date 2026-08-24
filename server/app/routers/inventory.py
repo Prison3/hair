@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from ..auth import get_current_admin
+from ..auth import require_admin
 from ..database import get_db
-from ..models import Admin, StockItem, StockMovement
+from ..models import Admin, StockItem, StockMovement, ProjectMedicine
 from ..schemas import StockInBody, StockItemIn, StockItemOut, StockMovementOut, StockOutBody
 from ..stock import delete_inbound, stock_in, stock_out
 
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 def list_inventory(
     q: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    _: Admin = Depends(require_admin),
 ):
     query = db.query(StockItem).order_by(StockItem.id.desc())
     if q:
@@ -39,10 +39,10 @@ def _duplicate_name(db: Session, name: str, exclude_id: Optional[int] = None) ->
 def create_item(
     body: StockItemIn,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    _: Admin = Depends(require_admin),
 ):
     if _duplicate_name(db, body.name):
-        raise HTTPException(status_code=400, detail="已有同名产品")
+        raise HTTPException(status_code=400, detail="已有同名药品")
     item = StockItem(name=body.name, stock_qty=0, cost_price=0)
     db.add(item)
     db.commit()
@@ -57,7 +57,7 @@ def list_movements(
     q: Optional[str] = Query(None),
     limit: int = Query(200, ge=1, le=500),
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    _: Admin = Depends(require_admin),
 ):
     query = db.query(StockMovement).order_by(
         StockMovement.created_at.desc(), StockMovement.id.desc()
@@ -78,7 +78,7 @@ def list_movements(
 def delete_movement(
     movement_id: int,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    _: Admin = Depends(require_admin),
 ):
     movement = db.get(StockMovement, movement_id)
     if not movement:
@@ -91,11 +91,11 @@ def delete_movement(
 def get_item(
     item_id: int,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    _: Admin = Depends(require_admin),
 ):
     item = db.get(StockItem, item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="产品不存在")
+        raise HTTPException(status_code=404, detail="药品不存在")
     return item
 
 
@@ -104,14 +104,17 @@ def update_item(
     item_id: int,
     body: StockItemIn,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    _: Admin = Depends(require_admin),
 ):
     item = db.get(StockItem, item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="产品不存在")
+        raise HTTPException(status_code=404, detail="药品不存在")
     if _duplicate_name(db, body.name, exclude_id=item_id):
-        raise HTTPException(status_code=400, detail="已有同名产品")
+        raise HTTPException(status_code=400, detail="已有同名药品")
     item.name = body.name
+    db.query(ProjectMedicine).filter(ProjectMedicine.item_id == item_id).update(
+        {ProjectMedicine.item_name: body.name}, synchronize_session=False
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -121,11 +124,13 @@ def update_item(
 def delete_item(
     item_id: int,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    _: Admin = Depends(require_admin),
 ):
     item = db.get(StockItem, item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="产品不存在")
+        raise HTTPException(status_code=404, detail="药品不存在")
+    if db.query(ProjectMedicine).filter(ProjectMedicine.item_id == item_id).first():
+        raise HTTPException(status_code=400, detail="该药品已用于项目，无法删除")
     db.query(StockMovement).filter(StockMovement.item_id == item_id).delete(
         synchronize_session=False
     )
@@ -137,7 +142,7 @@ def delete_item(
 def inbound(
     body: StockInBody,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_admin),
 ):
     movement = stock_in(
         db,
@@ -159,11 +164,11 @@ def inbound(
 def outbound(
     body: StockOutBody,
     db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(require_admin),
 ):
     item = db.get(StockItem, body.item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="产品不存在")
+        raise HTTPException(status_code=404, detail="药品不存在")
     movement = stock_out(db, item, body.quantity, body.remark, admin.id)
     db.commit()
     db.refresh(movement)

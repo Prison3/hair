@@ -19,6 +19,18 @@ interface ApiService {
     @PATCH("api/auth/me")
     suspend fun updateAccount(@Body body: AccountUpdateIn): AccountUpdateOut
 
+    @GET("api/auth/staff")
+    suspend fun listStaff(): List<Staff>
+
+    @POST("api/auth/staff")
+    suspend fun createStaff(@Body body: StaffCreate): Staff
+
+    @PATCH("api/auth/staff/{id}")
+    suspend fun updateStaff(@Path("id") id: Int, @Body body: StaffUpdate): Staff
+
+    @DELETE("api/auth/staff/{id}")
+    suspend fun deleteStaff(@Path("id") id: Int)
+
     @GET("api/customers")
     suspend fun listCustomers(@Query("q") q: String? = null): List<Customer>
 

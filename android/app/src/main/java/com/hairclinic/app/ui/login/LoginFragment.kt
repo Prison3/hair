@@ -74,9 +74,14 @@ class LoginFragment : Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
                     val token = ApiClient.get(requireContext()).login(LoginIn(username, password))
-                    Session.saveToken(requireContext(), token.access_token)
-                    Session.saveUsername(requireContext(), username)
-                    findNavController().navigate(R.id.customersFragment)
+                    Session.saveAuth(
+                        requireContext(),
+                        token.access_token,
+                        token.username.ifBlank { username },
+                        token.role,
+                    )
+                    (activity as? com.hairclinic.app.MainActivity)?.applyRoleTabs()
+                    findNavController().navigate(Session.homeDestination(requireContext()))
                 } catch (e: Exception) {
                     val msg = when (e) {
                         is UnknownHostException -> "地址不可达：主机名无法解析"

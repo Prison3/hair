@@ -12,6 +12,17 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import Admin
 
+ROLE_ADMIN = "admin"
+ROLE_MANAGER = "manager"
+
+
+def role_label(role: str) -> str:
+    return "管理员" if (role or ROLE_ADMIN) == ROLE_ADMIN else "店长"
+
+
+def is_admin(admin: Admin) -> bool:
+    return (admin.role or ROLE_ADMIN) == ROLE_ADMIN
+
 SECRET_KEY = "hair-clinic-dev-secret-change-me"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 72
@@ -34,6 +45,30 @@ def create_access_token(subject: str) -> str:
         {"sub": subject, "exp": expire},
         SECRET_KEY,
         algorithm=ALGORITHM,
+    )
+
+
+def token_out(admin: Admin):
+    from .schemas import TokenOut
+
+    role = admin.role or ROLE_ADMIN
+    return TokenOut(
+        access_token=create_access_token(admin.username),
+        username=admin.username,
+        role=role,
+        role_label=role_label(role),
+    )
+
+
+def me_out(admin: Admin):
+    from .schemas import MeOut
+
+    role = admin.role or ROLE_ADMIN
+    return MeOut(
+        id=admin.id,
+        username=admin.username,
+        role=role,
+        role_label=role_label(role),
     )
 
 
@@ -64,4 +99,10 @@ def get_current_admin(
     admin = db.query(Admin).filter(Admin.username == username).first()
     if not admin:
         raise credentials_exception
+    return admin
+
+
+def require_admin(admin: Admin = Depends(get_current_admin)) -> Admin:
+    if not is_admin(admin):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="仅管理员可操作")
     return admin

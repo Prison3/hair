@@ -37,8 +37,12 @@ class InboundFragment : Fragment() {
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.submitBtn.setOnClickListener { submit() }
         binding.inputProduct.keyListener = null
+        binding.inputUnit.setAdapter(ArrayAdapter(requireContext(), R.layout.item_spinner, UNITS))
+        binding.inputUnit.keyListener = null
+        selectUnit("个")
         binding.inputProduct.setOnItemClickListener { _, _, position, _ ->
             selected = products.getOrNull(position)
+            selectUnit(selected?.unit)
             bindMeta()
         }
         loadProducts()
@@ -55,20 +59,32 @@ class InboundFragment : Fragment() {
                     ?: products.firstOrNull { it.name == arguments?.getString(ARG_NAME).orEmpty() }
                 if (selected != null) {
                     binding.inputProduct.setText(selected!!.name, false)
+                    selectUnit(selected!!.unit)
                 } else if (products.size == 1) {
                     selected = products.first()
                     binding.inputProduct.setText(selected!!.name, false)
+                    selectUnit(selected!!.unit)
                 }
                 bindMeta()
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), e.message ?: "加载产品失败", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), e.message ?: "加载药品失败", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun bindMeta() {
         binding.productMeta.isVisible = products.isEmpty()
-        binding.productMeta.text = "暂无产品，请先在产品表录入"
+        binding.productMeta.text = "暂无药品，请先在药品表录入"
+    }
+
+    private fun selectUnit(raw: String?) {
+        val value = raw?.trim().orEmpty()
+        binding.inputUnit.setText(if (value in UNITS) value else "个", false)
+    }
+
+    private fun selectedUnit(): String {
+        val value = binding.inputUnit.text?.toString()?.trim().orEmpty()
+        return if (value in UNITS) value else "个"
     }
 
     private fun currentProduct(): StockItem? {
@@ -101,7 +117,7 @@ class InboundFragment : Fragment() {
         if (item == null) {
             Toast.makeText(
                 requireContext(),
-                if (products.isEmpty()) "请先添加产品" else "请选择产品",
+                if (products.isEmpty()) "请先添加药品" else "请选择药品",
                 Toast.LENGTH_SHORT,
             ).show()
             return
@@ -127,9 +143,9 @@ class InboundFragment : Fragment() {
                     StockInRequest(
                         item_id = item.id,
                         name = item.name,
-                        spec = item.spec,
+                        spec = item.spec.orEmpty(),
                         quantity = qty,
-                        unit = item.unitLabel(),
+                        unit = selectedUnit(),
                         unit_cost = price,
                         moved_at = date,
                     )
@@ -150,6 +166,7 @@ class InboundFragment : Fragment() {
     companion object {
         const val ARG_ITEM_ID = "item_id"
         const val ARG_NAME = "name"
+        val UNITS = listOf("支", "个", "盒", "次", "套")
 
         fun args(itemId: Int = -1, name: String? = null): Bundle = Bundle().apply {
             putInt(ARG_ITEM_ID, itemId)

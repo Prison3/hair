@@ -2,6 +2,7 @@ package com.hairclinic.app.data
 
 import android.content.Context
 import com.hairclinic.app.BuildConfig
+import com.hairclinic.app.R
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -14,6 +15,9 @@ object Session {
     private const val KEY_TOKEN = "token"
     private const val KEY_BASE_URL = "base_url"
     private const val KEY_USERNAME = "username"
+    private const val KEY_ROLE = "role"
+    const val ROLE_ADMIN = "admin"
+    const val ROLE_MANAGER = "manager"
 
     fun saveToken(context: Context, token: String) {
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
@@ -34,6 +38,54 @@ object Session {
 
     fun username(context: Context): String =
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(KEY_USERNAME, "") ?: ""
+
+    fun saveRole(context: Context, role: String) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_ROLE, role)
+            .apply()
+    }
+
+    fun role(context: Context): String =
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(KEY_ROLE, "") ?: ""
+
+    fun isAdmin(context: Context): Boolean {
+        val value = role(context)
+        return value.isBlank() || value == ROLE_ADMIN
+    }
+
+    fun saveAuth(context: Context, token: String, username: String, role: String) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_TOKEN, token)
+            .putString(KEY_USERNAME, username)
+            .putString(KEY_ROLE, role)
+            .apply()
+    }
+
+    fun homeDestination(context: Context): Int =
+        if (isAdmin(context)) R.id.projectsFragment else R.id.customersFragment
+
+    fun allowedNavIds(context: Context): Set<Int> =
+        if (isAdmin(context)) {
+            setOf(R.id.projectsFragment, R.id.inventoryFragment, R.id.staffFragment, R.id.meFragment)
+        } else {
+            setOf(R.id.customersFragment, R.id.billingFragment, R.id.ordersFragment, R.id.meFragment)
+        }
+
+    fun isAllowedDestination(context: Context, destId: Int): Boolean {
+        if (destId == R.id.loginFragment) return true
+        if (isAdmin(context)) {
+            return destId in allowedNavIds(context) || destId in setOf(
+                R.id.projectEditFragment,
+                R.id.productListFragment,
+                R.id.productEditFragment,
+                R.id.inboundFragment,
+                R.id.stockFragment,
+            )
+        }
+        return destId in allowedNavIds(context) || destId == R.id.customerEditFragment
+    }
 
     fun saveBaseUrl(context: Context, url: String) {
         val normalized = normalizeBaseUrl(url)

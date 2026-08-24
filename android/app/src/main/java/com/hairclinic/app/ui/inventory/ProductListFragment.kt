@@ -32,12 +32,12 @@ class ProductListFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.pageTitle.text = "产品"
-        binding.pageSubtitle.text = "产品档案，入库前请先录入"
+        binding.pageTitle.text = "药品"
+        binding.pageSubtitle.text = "药品档案，入库前请先录入"
         binding.backBtn.isVisible = true
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
-        binding.searchInput.hint = "搜索产品名"
-        binding.addBtn.text = "添加产品"
+        binding.searchInput.hint = "搜索药品名"
+        binding.addBtn.text = "添加药品"
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
         binding.addBtn.setOnClickListener {
@@ -71,7 +71,7 @@ class ProductListFragment : Fragment() {
                     )
                 })
                 binding.emptyText.isVisible = list.isEmpty()
-                binding.emptyText.text = "暂无产品，点击下方添加"
+                binding.emptyText.text = "暂无药品，点击下方添加"
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
             }
@@ -84,7 +84,7 @@ class ProductListFragment : Fragment() {
 
     private fun confirmDelete(item: StockItem) {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("删除产品")
+            .setTitle("删除药品")
             .setMessage("确定删除「${item.name}」？相关入库记录也会一起删除。")
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ -> delete(item) }

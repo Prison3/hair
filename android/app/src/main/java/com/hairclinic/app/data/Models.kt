@@ -1,10 +1,21 @@
 package com.hairclinic.app.data
 
-data class TokenOut(val access_token: String, val token_type: String = "bearer")
+data class TokenOut(
+    val access_token: String,
+    val token_type: String = "bearer",
+    val username: String = "",
+    val role: String = "admin",
+    val role_label: String = "管理员",
+)
 
 data class LoginIn(val username: String, val password: String)
 
-data class MeOut(val id: Int, val username: String)
+data class MeOut(
+    val id: Int,
+    val username: String,
+    val role: String = "admin",
+    val role_label: String = "管理员",
+)
 
 data class AccountUpdateIn(
     val current_password: String,
@@ -17,6 +28,28 @@ data class AccountUpdateOut(
     val username: String,
     val access_token: String,
     val token_type: String = "bearer",
+    val role: String = "admin",
+    val role_label: String = "管理员",
+)
+
+data class Staff(
+    val id: Int,
+    val username: String,
+    val role: String = "manager",
+    val role_label: String = "店长",
+    val created_at: String? = null,
+)
+
+data class StaffCreate(
+    val username: String,
+    val password: String,
+    val role: String = "manager",
+)
+
+data class StaffUpdate(
+    val username: String? = null,
+    val password: String? = null,
+    val role: String? = null,
 )
 
 data class Customer(
@@ -46,6 +79,16 @@ fun formatVisitTime(raw: String?): String {
     return raw.replace('T', ' ').replace('Z', ' ').trim().take(16)
 }
 
+data class ProjectMedicine(
+    val id: Int? = null,
+    val item_id: Int,
+    val item_name: String = "",
+    val quantity: Int = 1,
+    val unit: String? = "个",
+) {
+    fun doseText(): String = "$item_name ${quantity}${stockUnitLabel(unit)}"
+}
+
 data class Project(
     val id: Int? = null,
     val name: String,
@@ -57,36 +100,28 @@ data class Project(
     val created_at: String? = null,
     val stock_qty: Int = 0,
     val cost_price: Double = 0.0,
+    val medicines: List<ProjectMedicine> = emptyList(),
 ) {
-    fun unitLabel(): String {
-        val raw = unit?.trim().orEmpty()
-        return when {
-            raw.isBlank() || raw == "单位" -> "次"
-            else -> raw
-        }
-    }
+    fun medicineText(): String = medicines.joinToString(" · ") { it.doseText() }
+}
 
-    fun specText(): String = "$graft_count ${unitLabel()}"
+fun stockUnitLabel(raw: String?): String {
+    val value = raw?.trim().orEmpty()
+    return if (value.isBlank() || value == "单位") "个" else value
 }
 
 data class StockItem(
     val id: Int,
     val name: String,
-    val spec: String = "",
-    val unit: String = "个",
+    val spec: String? = "",
+    val unit: String? = "个",
     val stock_qty: Int = 0,
     val cost_price: Double = 0.0,
     val created_at: String? = null,
 ) {
-    fun unitLabel(): String {
-        val raw = unit.trim()
-        return when {
-            raw.isBlank() || raw == "单位" -> "个"
-            else -> raw
-        }
-    }
+    fun unitLabel(): String = stockUnitLabel(unit)
 
-    fun specText(): String = spec.trim().ifBlank { "—" }
+    fun specText(): String = spec?.trim().orEmpty().ifBlank { "—" }
 
     fun stockText(): String = "库存 $stock_qty ${unitLabel()}"
 
@@ -122,9 +157,10 @@ data class StockMovement(
     val item_name: String,
     val kind: String,
     val quantity: Int,
+    val unit: String? = "个",
     val unit_cost: Double = 0.0,
-    val remark: String = "",
-    val inbound_no: String = "",
+    val remark: String? = "",
+    val inbound_no: String? = "",
     val moved_at: String? = null,
     val created_at: String,
 ) {
@@ -133,9 +169,13 @@ data class StockMovement(
     fun timeText(): String = formatVisitTime(moved_at ?: created_at).take(10)
 
     fun inboundNoText(): String {
-        if (inbound_no.isNotBlank()) return inbound_no
+        if (!inbound_no.isNullOrBlank()) return inbound_no
         return created_at.replace('T', ' ').replace('Z', ' ').trim().take(19)
     }
+
+    fun unitLabel(): String = stockUnitLabel(unit)
+
+    fun qtyText(): String = "$quantity${unitLabel()}"
 }
 
 data class OrderItemIn(val project_id: Int, val quantity: Int = 1)

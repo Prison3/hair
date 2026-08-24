@@ -65,22 +65,14 @@
         app:layout_constraintTop_toBottomOf="@id/topBar"
         app:navGraph="@navigation/nav_graph" />
 
-    <com.hairclinic.app.widget.SixItemBottomNavigationView
+    <com.hairclinic.app.widget.MainBottomNavView
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_bottom_bar"
         android:elevation="0dp"
-        app:itemActiveIndicatorStyle="@style/Widget.XinShang.BottomNav.ActiveIndicator"
-        app:itemIconSize="22dp"
-        app:itemIconTint="@null"
-        app:itemTextAppearanceActive="@style/TextAppearance.XinShang.BottomNav"
-        app:itemTextAppearanceInactive="@style/TextAppearance.XinShang.BottomNav"
-        app:itemTextColor="@color/bottom_nav_color"
-        app:itemRippleColor="@color/pine_soft"
-        app:labelVisibilityMode="labeled"
+        android:paddingTop="4dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/bottom_nav" />
+        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
