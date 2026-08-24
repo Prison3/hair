@@ -112,6 +112,26 @@
                 android:layout_marginTop="12dp"
                 android:text="修改账号密码"
                 app:cornerRadius="10dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/switchAccountBtn"
+                style="@style/Widget.XinShang.Button.Ghost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="切换登录账号"
+                android:visibility="gone"
+                app:cornerRadius="10dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/returnAdminBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="返回管理员"
+                android:visibility="gone"
+                app:backgroundTint="@color/pine"
+                app:cornerRadius="10dp" />
         </LinearLayout>
 
         <LinearLayout

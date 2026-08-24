@@ -57,7 +57,11 @@ class MainBottomNavView @JvmOverloads constructor(
 
     fun setupWithNavController(navController: NavController) {
         onItemSelected = { destId ->
+            val currentId = navController.currentDestination?.id
             if (destId == selectedId) {
+                if (destId == R.id.inventoryFragment && currentId != R.id.inventoryFragment) {
+                    navController.popBackStack(R.id.inventoryFragment, false)
+                }
                 true
             } else {
                 try {
@@ -73,9 +77,13 @@ class MainBottomNavView @JvmOverloads constructor(
             }
         }
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            val destId = when (destination.id) {
+                R.id.inboundListFragment, R.id.productListFragment -> R.id.inventoryFragment
+                else -> destination.id
+            }
             val match = (0 until childCount)
                 .map { getChildAt(it).tag as Int }
-                .firstOrNull { id -> destination.matchDestination(id) }
+                .firstOrNull { id -> destId == id || destination.matchDestination(id) }
             if (match != null) select(match, fromUser = false)
         }
     }

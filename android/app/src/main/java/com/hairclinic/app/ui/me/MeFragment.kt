@@ -20,6 +20,8 @@ import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.AppReleaseInfo
 import com.hairclinic.app.data.Session
 import com.hairclinic.app.databinding.FragmentMeBinding
+import com.hairclinic.app.ui.enterAccount
+import com.hairclinic.app.ui.returnToAdminAccount
 import com.hairclinic.app.update.AppUpdater
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -41,6 +43,8 @@ class MeFragment : Fragment() {
         refreshProfile()
         binding.currentVersionText.text = "当前版本  v${BuildConfig.VERSION_NAME}"
         binding.editAccountBtn.setOnClickListener { showAccountDialog() }
+        binding.switchAccountBtn.setOnClickListener { showSwitchDialog() }
+        binding.returnAdminBtn.setOnClickListener { returnToAdmin() }
         binding.checkUpdateBtn.setOnClickListener { checkUpdate() }
         binding.installUpdateBtn.setOnClickListener {
             val info = releaseInfo ?: return@setOnClickListener
@@ -64,9 +68,21 @@ class MeFragment : Fragment() {
         val name = Session.username(requireContext()).ifBlank { "用户" }
         binding.usernameText.text = name
         binding.avatarLetter.text = name.first().toString()
+        val impersonating = Session.isImpersonating(requireContext())
         val role = if (Session.isAdmin(requireContext())) "管理员" else "店长"
-        binding.roleText.text = "心尚植发 · $role"
-        binding.accountHint.text = "当前账号：$name（$role）。可修改用户名和登录密码。"
+        val origin = Session.originUsername(requireContext())
+        binding.roleText.text = if (impersonating) {
+            "以 $role 身份登录"
+        } else {
+            "心尚植发 · $role"
+        }
+        binding.accountHint.text = if (impersonating) {
+            "当前账号：$name（$role），由管理员 $origin 切换。可返回管理员，或修改当前账号资料。"
+        } else {
+            "当前账号：$name（$role）。可修改用户名和登录密码。"
+        }
+        binding.switchAccountBtn.isVisible = Session.isAdmin(requireContext())
+        binding.returnAdminBtn.isVisible = impersonating
     }
 
     private fun checkUpdate(silent: Boolean = false) {
@@ -106,6 +122,55 @@ class MeFragment : Fragment() {
                 _binding?.checkUpdateBtn?.isEnabled = true
             }
         }
+    }
+
+    private fun showSwitchDialog() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val me = Session.username(requireContext())
+                val list = ApiClient.get(requireContext()).listStaff()
+                    .filter { it.username != me }
+                if (list.isEmpty()) {
+                    toast("没有可切换的账号")
+                    return@launch
+                }
+                val labels = list.map { "${it.username}（${it.role_label}）" }.toTypedArray()
+                AlertDialog.Builder(requireContext())
+                    .setTitle("切换登录账号")
+                    .setItems(labels) { _, which ->
+                        val staff = list.getOrNull(which) ?: return@setItems
+                        switchTo(staff.id, staff.username)
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+            } catch (e: Exception) {
+                toast(apiErrorMessage(e))
+            }
+        }
+    }
+
+    private fun switchTo(staffId: Int, username: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val token = ApiClient.get(requireContext()).loginAsStaff(staffId)
+                toast("已切换到 ${token.username.ifBlank { username }}")
+                enterAccount(token)
+            } catch (e: Exception) {
+                toast(apiErrorMessage(e))
+            }
+        }
+    }
+
+    private fun returnToAdmin() {
+        val origin = Session.originUsername(requireContext()).ifBlank { "管理员" }
+        AlertDialog.Builder(requireContext())
+            .setTitle("返回管理员")
+            .setMessage("返回账号 $origin ？")
+            .setPositiveButton("返回") { _, _ ->
+                if (!returnToAdminAccount()) toast("无法返回管理员")
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun showAccountDialog() {

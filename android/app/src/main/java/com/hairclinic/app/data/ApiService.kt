@@ -31,6 +31,9 @@ interface ApiService {
     @DELETE("api/auth/staff/{id}")
     suspend fun deleteStaff(@Path("id") id: Int)
 
+    @POST("api/auth/staff/{id}/login")
+    suspend fun loginAsStaff(@Path("id") id: Int): TokenOut
+
     @GET("api/customers")
     suspend fun listCustomers(@Query("q") q: String? = null): List<Customer>
 

@@ -50,6 +50,18 @@
                 android:textColor="@color/ink_soft"
                 android:textSize="13sp" />
         </LinearLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/headerActionBtn"
+            style="@style/Widget.XinShang.Button.Ghost"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="14dp"
+            android:text="添加"
+            android:visibility="gone"
+            app:cornerRadius="10dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -189,13 +201,25 @@
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/extraBtn"
+            android:id="@+id/stockBtn"
             style="@style/Widget.XinShang.Button.Ghost"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:text="库存"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:cornerRadius="14dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/extraBtn"
+            style="@style/Widget.XinShang.Button.Ghost"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="入库"
             android:textSize="16sp"
             android:visibility="gone"
             app:cornerRadius="14dp" />

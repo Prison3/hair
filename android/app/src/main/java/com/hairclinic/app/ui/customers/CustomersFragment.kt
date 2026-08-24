@@ -30,6 +30,8 @@ data class Item(
     val badgeTone: BadgeTone = BadgeTone.SUCCESS,
     val clickable: Boolean = true,
     val onClick: () -> Unit = {},
+    val actionLabel: String = "",
+    val onAction: (() -> Unit)? = null,
     val onDelete: (() -> Unit)? = null,
 )
 
@@ -66,6 +68,11 @@ class SimpleAdapter : RecyclerView.Adapter<SimpleAdapter.VH>() {
             holder.binding.badge.setTextColor(ContextCompat.getColor(ctx, color))
         }
         holder.binding.chevron.isVisible = item.clickable
+        holder.binding.actionBtn.isVisible = item.onAction != null
+        holder.binding.actionBtn.text = item.actionLabel.ifBlank { "登录" }
+        holder.binding.actionBtn.setOnClickListener(
+            if (item.onAction != null) ({ item.onAction.invoke() }) else null
+        )
         holder.binding.deleteBtn.isVisible = item.onDelete != null
         holder.binding.deleteBtn.setOnClickListener(
             if (item.onDelete != null) ({ item.onDelete.invoke() }) else null

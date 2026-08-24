@@ -37,6 +37,10 @@
         android:name="com.hairclinic.app.ui.inventory.ProductEditFragment"
         android:label="录入药品" />
     <fragment
+        android:id="@+id/inboundListFragment"
+        android:name="com.hairclinic.app.ui.inventory.InboundListFragment"
+        android:label="入库" />
+    <fragment
         android:id="@+id/inboundFragment"
         android:name="com.hairclinic.app.ui.inventory.InboundFragment"
         android:label="入库" />
@@ -56,6 +60,10 @@
         android:id="@+id/staffFragment"
         android:name="com.hairclinic.app.ui.staff.StaffFragment"
         android:label="用户管理" />
+    <fragment
+        android:id="@+id/staffEditFragment"
+        android:name="com.hairclinic.app.ui.staff.StaffEditFragment"
+        android:label="编辑用户" />
     <fragment
         android:id="@+id/meFragment"
         android:name="com.hairclinic.app.ui.me.MeFragment"

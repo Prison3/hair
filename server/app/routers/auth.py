@@ -162,6 +162,20 @@ def update_staff(
     return _staff_out(row)
 
 
+@router.post("/staff/{staff_id}/login", response_model=TokenOut)
+def login_as_staff(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current: Admin = Depends(require_admin),
+):
+    row = db.get(Admin, staff_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if row.id == current.id:
+        raise HTTPException(status_code=400, detail="当前已是该账号")
+    return token_out(row)
+
+
 @router.delete("/staff/{staff_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_staff(
     staff_id: int,

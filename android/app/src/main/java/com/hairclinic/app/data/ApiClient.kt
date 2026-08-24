@@ -16,6 +16,9 @@ object Session {
     private const val KEY_BASE_URL = "base_url"
     private const val KEY_USERNAME = "username"
     private const val KEY_ROLE = "role"
+    private const val KEY_ORIGIN_TOKEN = "origin_token"
+    private const val KEY_ORIGIN_USERNAME = "origin_username"
+    private const val KEY_ORIGIN_ROLE = "origin_role"
     const val ROLE_ADMIN = "admin"
     const val ROLE_MANAGER = "manager"
 
@@ -63,6 +66,44 @@ object Session {
             .apply()
     }
 
+    fun isImpersonating(context: Context): Boolean =
+        originToken(context).isNotBlank()
+
+    fun originUsername(context: Context): String =
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .getString(KEY_ORIGIN_USERNAME, "") ?: ""
+
+    private fun originToken(context: Context): String =
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .getString(KEY_ORIGIN_TOKEN, "") ?: ""
+
+    fun rememberOriginIfNeeded(context: Context) {
+        if (isImpersonating(context)) return
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_ORIGIN_TOKEN, token(context))
+            .putString(KEY_ORIGIN_USERNAME, username(context))
+            .putString(KEY_ORIGIN_ROLE, role(context))
+            .apply()
+    }
+
+    fun restoreOrigin(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+        val origin = prefs.getString(KEY_ORIGIN_TOKEN, "") ?: ""
+        if (origin.isBlank()) return false
+        val name = prefs.getString(KEY_ORIGIN_USERNAME, "") ?: ""
+        val originRole = prefs.getString(KEY_ORIGIN_ROLE, ROLE_ADMIN) ?: ROLE_ADMIN
+        prefs.edit()
+            .putString(KEY_TOKEN, origin)
+            .putString(KEY_USERNAME, name)
+            .putString(KEY_ROLE, originRole)
+            .remove(KEY_ORIGIN_TOKEN)
+            .remove(KEY_ORIGIN_USERNAME)
+            .remove(KEY_ORIGIN_ROLE)
+            .apply()
+        return true
+    }
+
     fun homeDestination(context: Context): Int =
         if (isAdmin(context)) R.id.projectsFragment else R.id.customersFragment
 
@@ -80,8 +121,10 @@ object Session {
                 R.id.projectEditFragment,
                 R.id.productListFragment,
                 R.id.productEditFragment,
+                R.id.inboundListFragment,
                 R.id.inboundFragment,
                 R.id.stockFragment,
+                R.id.staffEditFragment,
             )
         }
         return destId in allowedNavIds(context) || destId == R.id.customerEditFragment
