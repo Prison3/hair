@@ -101,13 +101,33 @@
             android:visibility="gone" />
     </FrameLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/addBtn"
+    <LinearLayout
+        android:id="@+id/actionRow"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="添加"
-        android:textSize="16sp"
-        app:backgroundTint="@color/pine"
-        app:cornerRadius="14dp" />
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/extraBtn"
+            style="@style/Widget.XinShang.Button.Ghost"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="库存"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:cornerRadius="14dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/addBtn"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="添加"
+            android:textSize="16sp"
+            app:backgroundTint="@color/pine"
+            app:cornerRadius="14dp" />
+    </LinearLayout>
 </LinearLayout>

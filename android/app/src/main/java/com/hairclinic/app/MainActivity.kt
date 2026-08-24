@@ -30,7 +30,9 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val isLogin = destination.id == R.id.loginFragment
             val isEdit = destination.id == R.id.customerEditFragment ||
-                destination.id == R.id.projectEditFragment
+                destination.id == R.id.projectEditFragment ||
+                destination.id == R.id.inboundFragment ||
+                destination.id == R.id.stockFragment
             val showChrome = !isLogin
             binding.bottomNav.visibility = if (showChrome && !isEdit) View.VISIBLE else View.GONE
             binding.topBar.visibility = if (showChrome) View.VISIBLE else View.GONE

@@ -55,6 +55,8 @@ data class Project(
     val unit: String? = "个",
     val active: Boolean = true,
     val created_at: String? = null,
+    val stock_qty: Int = 0,
+    val cost_price: Double = 0.0,
 ) {
     fun unitLabel(): String {
         val raw = unit?.trim().orEmpty()
@@ -65,6 +67,39 @@ data class Project(
     }
 
     fun specText(): String = "$graft_count ${unitLabel()}"
+
+    fun isPhysical(): Boolean = unitLabel() in setOf("支", "个", "盒")
+
+    fun stockText(): String = "库存 $stock_qty ${unitLabel()}"
+
+    fun costText(): String {
+        val price = if (cost_price % 1.0 == 0.0) cost_price.toLong().toString() else "%.2f".format(cost_price)
+        return "进货价 ¥$price"
+    }
+}
+
+data class StockMoveIn(
+    val project_id: Int,
+    val quantity: Int,
+    val unit_cost: Double = 0.0,
+    val moved_at: String? = null,
+    val remark: String = "",
+)
+
+data class StockMovement(
+    val id: Int,
+    val project_id: Int,
+    val project_name: String,
+    val kind: String,
+    val quantity: Int,
+    val unit_cost: Double = 0.0,
+    val remark: String = "",
+    val moved_at: String? = null,
+    val created_at: String,
+) {
+    fun kindLabel(): String = if (kind == "IN") "入库" else "出货"
+
+    fun timeText(): String = formatVisitTime(moved_at ?: created_at).take(10)
 }
 
 data class OrderItemIn(val project_id: Int, val quantity: Int = 1)

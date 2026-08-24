@@ -120,6 +120,40 @@ class ProjectOut(ProjectBase):
 
     id: int
     created_at: datetime
+    stock_qty: int = 0
+    cost_price: Decimal = Decimal("0")
+
+
+STOCK_IN = "IN"
+STOCK_OUT = "OUT"
+PHYSICAL_UNITS = ("支", "个", "盒")
+
+
+class StockMoveIn(BaseModel):
+    project_id: int
+    quantity: int = Field(ge=1)
+    unit_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    moved_at: Optional[date] = None
+    remark: str = ""
+
+    @field_validator("remark")
+    @classmethod
+    def trim_remark(cls, value: str) -> str:
+        return (value or "").strip()
+
+
+class StockMovementOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    project_id: int
+    project_name: str
+    kind: str
+    quantity: int
+    unit_cost: Decimal
+    remark: str = ""
+    moved_at: Optional[date] = None
+    created_at: datetime
 
 
 class OrderItemIn(BaseModel):

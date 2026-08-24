@@ -68,6 +68,11 @@ button.primary, .login-card button[type="submit"] {
   border-color: var(--accent);
   color: #fff;
 }
+button.danger {
+  background: #fff;
+  border-color: var(--danger);
+  color: var(--danger);
+}
 button:hover { filter: brightness(0.98); }
 
 #app-view {

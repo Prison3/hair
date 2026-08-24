@@ -2,7 +2,10 @@
 <resources>
     <style name="Widget.XinShang.BottomNav.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
         <item name="android:color">@color/pine_soft</item>
-        <item name="android:width">56dp</item>
-        <item name="android:height">32dp</item>
+        <item name="android:width">48dp</item>
+        <item name="android:height">28dp</item>
+    </style>
+    <style name="TextAppearance.XinShang.BottomNav" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">11sp</item>
     </style>
 </resources>

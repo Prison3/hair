@@ -11,6 +11,7 @@ from ..auth import get_current_admin
 from ..database import get_db
 from ..models import Admin, Customer, Order, OrderItem, Project
 from ..schemas import OrderCreate, OrderOut, OrderStatusUpdate
+from ..stock import is_physical, stock_out
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
@@ -103,6 +104,7 @@ def create_order(
 
     items = []  # type: List[OrderItem]
     total = Decimal("0.00")
+    order_no = _order_no()
     for item in body.items:
         project = db.get(Project, item.project_id)
         if not project or not project.active:
@@ -117,9 +119,11 @@ def create_order(
                 quantity=item.quantity,
             )
         )
+        if is_physical(project):
+            stock_out(db, project, item.quantity, f"订单 {order_no}", admin.id)
 
     order = Order(
-        order_no=_order_no(),
+        order_no=order_no,
         customer_id=customer.id,
         total_amount=total,
         status="PAID",

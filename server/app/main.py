@@ -10,7 +10,7 @@ from sqlalchemy import text
 from .auth import hash_password
 from .database import Base, SessionLocal, engine
 from .models import Admin, Project
-from .routers import app_release, auth, customers, orders, projects
+from .routers import app_release, auth, customers, inventory, orders, projects
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -27,6 +27,16 @@ def migrate_schema() -> None:
         if pcols:
             conn.execute(
                 text("UPDATE projects SET unit = '次' WHERE unit IS NULL OR unit = '' OR unit = '单位'")
+            )
+            if "stock_qty" not in pcols:
+                conn.execute(text("ALTER TABLE projects ADD COLUMN stock_qty INTEGER DEFAULT 0"))
+            if "cost_price" not in pcols:
+                conn.execute(text("ALTER TABLE projects ADD COLUMN cost_price NUMERIC(12, 2) DEFAULT 0"))
+        mcols = [row[1] for row in conn.execute(text("PRAGMA table_info(stock_movements)")).fetchall()]
+        if mcols and "moved_at" not in mcols:
+            conn.execute(text("ALTER TABLE stock_movements ADD COLUMN moved_at DATE"))
+            conn.execute(
+                text("UPDATE stock_movements SET moved_at = date(created_at) WHERE moved_at IS NULL")
             )
 
 
@@ -90,6 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(customers.router)
     app.include_router(projects.router)
+    app.include_router(inventory.router)
     app.include_router(orders.router)
     app.include_router(app_release.router)
 

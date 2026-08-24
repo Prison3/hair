@@ -45,6 +45,8 @@ class Project(Base):
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     graft_count: Mapped[int] = mapped_column(Integer, default=0)
     unit: Mapped[str] = mapped_column(String(16), default="个")
+    stock_qty: Mapped[int] = mapped_column(Integer, default=0)
+    cost_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -91,3 +93,18 @@ class CustomerVisit(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     customer: Mapped["Customer"] = relationship("Customer", back_populates="visits")
+
+
+class StockMovement(Base):
+    __tablename__ = "stock_movements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
+    project_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    kind: Mapped[str] = mapped_column(String(8), nullable=False, index=True)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    remark: Mapped[str] = mapped_column(Text, default="")
+    moved_at: Mapped[date] = mapped_column(Date, nullable=False, index=True, default=date.today)
+    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("admins.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

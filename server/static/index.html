@@ -25,6 +25,7 @@
       <nav>
         <button data-page="customers" class="nav-btn active">客户</button>
         <button data-page="projects" class="nav-btn">项目</button>
+        <button data-page="inventory" class="nav-btn">库存</button>
         <button data-page="billing" class="nav-btn">开单</button>
         <button data-page="orders" class="nav-btn">订单</button>
       </nav>
@@ -59,6 +60,23 @@
             <tr><th>ID</th><th>名称</th><th>价格</th><th>规格</th><th>状态</th><th>操作</th></tr>
           </thead>
           <tbody id="project-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-inventory" class="page hidden">
+        <header class="page-header">
+          <h2>库存管理</h2>
+          <div class="row">
+            <input id="inventory-q" placeholder="搜索项目名称" />
+            <button id="inventory-search">搜索</button>
+            <button id="inventory-in" class="primary">入库</button>
+          </div>
+        </header>
+        <table>
+          <thead>
+            <tr><th>项目</th><th>规格</th><th>库存</th><th>进货价</th><th>售价</th><th>操作</th></tr>
+          </thead>
+          <tbody id="inventory-tbody"></tbody>
         </table>
       </section>
 
@@ -163,6 +181,45 @@
       <div class="row end">
         <button type="button" id="project-cancel">取消</button>
         <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="stock-dialog">
+    <form id="stock-form" class="dialog-form visit-dialog">
+      <h3 id="stock-dialog-title">进出货</h3>
+      <input type="hidden" id="stock-project-id" />
+      <p id="stock-summary" class="muted"></p>
+      <div id="stock-moves" class="visit-list"></div>
+      <div class="row" style="align-items:stretch">
+        <label style="flex:1">数量<input id="s-qty" type="number" min="1" value="1" required /></label>
+      </div>
+      <label>备注<input id="s-remark" placeholder="可选" /></label>
+      <div class="row end">
+        <button type="button" id="stock-cancel">关闭</button>
+        <button type="button" id="stock-out" class="danger">出货</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="inbound-dialog">
+    <form id="inbound-form" class="dialog-form">
+      <h3>入库</h3>
+      <label>产品名
+        <select id="in-product" required></select>
+      </label>
+      <label>进货日期
+        <input id="in-date" type="date" required />
+      </label>
+      <label>价格
+        <input id="in-price" type="number" min="0" step="0.01" required />
+      </label>
+      <label>数量
+        <input id="in-qty" type="number" min="1" value="1" required />
+      </label>
+      <div class="row end">
+        <button type="button" id="inbound-cancel">取消</button>
+        <button type="submit" class="primary">确认入库</button>
       </div>
     </form>
   </dialog>

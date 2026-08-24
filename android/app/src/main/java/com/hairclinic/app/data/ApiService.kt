@@ -50,6 +50,9 @@ interface ApiService {
     @GET("api/projects")
     suspend fun listProjects(@Query("active_only") activeOnly: Boolean = false): List<Project>
 
+    @GET("api/projects/{id}")
+    suspend fun getProject(@Path("id") id: Int): Project
+
     @POST("api/projects")
     suspend fun createProject(@Body body: Project): Project
 
@@ -58,6 +61,21 @@ interface ApiService {
 
     @DELETE("api/projects/{id}")
     suspend fun deactivateProject(@Path("id") id: Int): Project
+
+    @GET("api/inventory")
+    suspend fun listInventory(@Query("q") q: String? = null): List<Project>
+
+    @GET("api/inventory/movements")
+    suspend fun listStockMovements(
+        @Query("project_id") projectId: Int? = null,
+        @Query("kind") kind: String? = null,
+    ): List<StockMovement>
+
+    @POST("api/inventory/in")
+    suspend fun stockIn(@Body body: StockMoveIn): StockMovement
+
+    @POST("api/inventory/out")
+    suspend fun stockOut(@Body body: StockMoveIn): StockMovement
 
     @GET("api/orders")
     suspend fun listOrders(@Query("status") status: String? = null): List<Order>

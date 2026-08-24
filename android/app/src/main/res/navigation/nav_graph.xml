@@ -25,6 +25,18 @@
         android:name="com.hairclinic.app.ui.projects.ProjectEditFragment"
         android:label="编辑项目" />
     <fragment
+        android:id="@+id/inventoryFragment"
+        android:name="com.hairclinic.app.ui.inventory.InventoryFragment"
+        android:label="库存" />
+    <fragment
+        android:id="@+id/inboundFragment"
+        android:name="com.hairclinic.app.ui.inventory.InboundFragment"
+        android:label="入库" />
+    <fragment
+        android:id="@+id/stockFragment"
+        android:name="com.hairclinic.app.ui.inventory.StockFragment"
+        android:label="进出货" />
+    <fragment
         android:id="@+id/billingFragment"
         android:name="com.hairclinic.app.ui.billing.BillingFragment"
         android:label="开单" />
