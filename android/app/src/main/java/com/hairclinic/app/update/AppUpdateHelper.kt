@@ -34,6 +34,10 @@ class AppUpdateHelper(private val activity: AppCompatActivity) {
         }
     }
 
+    fun promptUpdate(info: AppReleaseInfo) {
+        showUpdateDialog(info)
+    }
+
     fun checkFromMenu() {
         if (updating) return
         activity.lifecycleScope.launch {

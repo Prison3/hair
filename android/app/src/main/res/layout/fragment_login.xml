@@ -55,7 +55,8 @@
                     android:id="@+id/username"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="admin"
+                    android:autofillHints="username"
+                    android:inputType="text"
                     android:textColor="@color/ink"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
@@ -76,8 +77,8 @@
                     android:id="@+id/password"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:autofillHints="password"
                     android:inputType="textPassword"
-                    android:text="admin123"
                     android:textColor="@color/ink"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>

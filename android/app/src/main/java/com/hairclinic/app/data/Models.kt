@@ -6,6 +6,19 @@ data class LoginIn(val username: String, val password: String)
 
 data class MeOut(val id: Int, val username: String)
 
+data class AccountUpdateIn(
+    val current_password: String,
+    val username: String? = null,
+    val new_password: String? = null,
+)
+
+data class AccountUpdateOut(
+    val id: Int,
+    val username: String,
+    val access_token: String,
+    val token_type: String = "bearer",
+)
+
 data class Customer(
     val id: Int? = null,
     val name: String,

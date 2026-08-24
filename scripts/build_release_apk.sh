@@ -31,6 +31,11 @@ find_gradle() {
 }
 
 cd "$CLIENT"
+
+# 关闭本机代理，避免 Gradle 走 127.0.0.1:7897 失败
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY ALL_PROXY no_proxy NO_PROXY
+export GRADLE_OPTS="${GRADLE_OPTS:-} -Dhttp.proxyHost= -Dhttps.proxyHost= -Dhttp.proxyPort= -Dhttps.proxyPort="
+
 GRADLE_BIN="$(find_gradle)" || {
   echo "找不到 Gradle，请先用 Android Studio 同步工程，或安装 Gradle Wrapper" >&2
   exit 1

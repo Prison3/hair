@@ -99,7 +99,8 @@ button:hover { filter: brightness(0.98); }
   background: rgba(255,255,255,0.1);
   color: #fff;
 }
-.logout { margin-top: auto; }
+.logout { margin-top: 8px; }
+#account-btn { margin-top: auto; }
 
 .content { padding: 28px; }
 .page-header {

@@ -16,6 +16,9 @@ interface ApiService {
     @GET("api/auth/me")
     suspend fun me(): MeOut
 
+    @PATCH("api/auth/me")
+    suspend fun updateAccount(@Body body: AccountUpdateIn): AccountUpdateOut
+
     @GET("api/customers")
     suspend fun listCustomers(@Query("q") q: String? = null): List<Customer>
 

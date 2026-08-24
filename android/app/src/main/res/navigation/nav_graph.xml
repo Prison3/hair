@@ -28,4 +28,8 @@
         android:id="@+id/ordersFragment"
         android:name="com.hairclinic.app.ui.orders.OrdersFragment"
         android:label="订单" />
+    <fragment
+        android:id="@+id/meFragment"
+        android:name="com.hairclinic.app.ui.me.MeFragment"
+        android:label="我的" />
 </navigation>

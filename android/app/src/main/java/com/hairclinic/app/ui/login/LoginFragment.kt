@@ -66,6 +66,10 @@ class LoginFragment : Fragment() {
             }
             val username = binding.username.text?.toString()?.trim().orEmpty()
             val password = binding.password.text?.toString().orEmpty()
+            if (username.isEmpty() || password.isEmpty()) {
+                binding.errorText.text = "请输入用户名和密码"
+                return@setOnClickListener
+            }
             binding.errorText.text = ""
             viewLifecycleOwner.lifecycleScope.launch {
                 try {

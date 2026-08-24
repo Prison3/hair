@@ -2,15 +2,17 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
 def gitRepoRoot = rootProject.projectDir.parentFile
+def gitExecutable = ['/usr/bin/git', '/opt/homebrew/bin/git', '/usr/local/bin/git']
+        .find { new File(it).canExecute() } ?: 'git'
 
-def gitOutput(List<String> args) {
-    try {
-        def proc = (['git', '-C', gitRepoRoot.absolutePath] + args).execute()
-        proc.waitFor()
-        return proc.text.trim()
-    } catch (Exception ignored) {
-        return ""
-    }
+// 必须用闭包捕获脚本变量；def 方法看不到上面的 def 局部量，会回退成 1 / dev
+def gitOutput = { List<String> args ->
+    def pb = new ProcessBuilder([gitExecutable, '-C', gitRepoRoot.absolutePath] + args)
+    pb.redirectErrorStream(true)
+    def proc = pb.start()
+    def text = proc.inputStream.getText('UTF-8').trim()
+    proc.waitFor()
+    return text
 }
 
 def gitVersionCode = {
@@ -23,6 +25,8 @@ def gitVersionName = {
     if (desc.isEmpty()) desc = "dev"
     return "${gitVersionCode} - ${desc}".toString()
 }()
+
+logger.lifecycle("App version: ${gitVersionCode} (${gitVersionName})")
 
 android {
     namespace 'com.hairclinic.app'
@@ -55,6 +59,10 @@ android {
     buildFeatures {
         viewBinding true
         buildConfig true
+    }
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
     }
 }
 

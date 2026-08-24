@@ -17,6 +17,24 @@ class LoginIn(BaseModel):
     password: str
 
 
+class MeOut(BaseModel):
+    id: int
+    username: str
+
+
+class AccountUpdateIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=64)
+    username: Optional[str] = Field(default=None, min_length=2, max_length=64)
+    new_password: Optional[str] = Field(default=None, min_length=6, max_length=64)
+
+
+class AccountUpdateOut(BaseModel):
+    id: int
+    username: str
+    access_token: str
+    token_type: str = "bearer"
+
+
 class CustomerBase(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     phone: str = Field(min_length=1, max_length=32)

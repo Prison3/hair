@@ -28,6 +28,7 @@
         <button data-page="billing" class="nav-btn">开单</button>
         <button data-page="orders" class="nav-btn">订单</button>
       </nav>
+      <button id="account-btn" class="logout">修改账号</button>
       <button id="logout-btn" class="logout">退出</button>
     </aside>
     <main class="content">
@@ -137,6 +138,21 @@
       <label class="row"><input id="p-active" type="checkbox" checked /> 启用</label>
       <div class="row end">
         <button type="button" id="project-cancel">取消</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="account-dialog">
+    <form id="account-form" method="dialog" class="dialog-form">
+      <h3>修改账号密码</h3>
+      <label>用户名<input id="a-username" required minlength="2" maxlength="64" /></label>
+      <label>当前密码<input id="a-current-password" type="password" required /></label>
+      <label>新密码（不改可留空）<input id="a-new-password" type="password" minlength="6" /></label>
+      <label>确认新密码<input id="a-confirm-password" type="password" /></label>
+      <p id="account-error" class="error"></p>
+      <div class="row end">
+        <button type="button" id="account-cancel">取消</button>
         <button type="submit" class="primary">保存</button>
       </div>
     </form>

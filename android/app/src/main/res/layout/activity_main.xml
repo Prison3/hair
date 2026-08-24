@@ -37,7 +37,7 @@
             android:drawablePadding="6dp"
             android:paddingHorizontal="14dp"
             android:paddingVertical="6dp"
-            android:text="admin"
+            android:text=""
             android:textColor="@color/pine"
             android:textSize="13sp"
             android:textStyle="bold" />

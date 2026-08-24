@@ -277,6 +277,8 @@ document.addEventListener("click", async (e) => {
 
   if (t.dataset.page) switchPage(t.dataset.page);
   if (t.id === "logout-btn") logout();
+  if (t.id === "account-btn") openAccountDialog();
+  if (t.id === "account-cancel") $("#account-dialog").close();
   if (t.id === "customer-search") loadCustomers();
   if (t.id === "customer-new") openCustomerDialog(null);
   if (t.id === "customer-cancel") $("#customer-dialog").close();
@@ -338,10 +340,54 @@ async function loadAppDownload() {
   }
 }
 
+async function openAccountDialog() {
+  $("#account-error").textContent = "";
+  $("#a-current-password").value = "";
+  $("#a-new-password").value = "";
+  $("#a-confirm-password").value = "";
+  try {
+    const me = await api("/api/auth/me");
+    $("#a-username").value = me.username || "";
+  } catch (err) {
+    $("#a-username").value = "";
+    $("#account-error").textContent = err.message;
+  }
+  $("#account-dialog").showModal();
+}
+
+async function saveAccount(e) {
+  e.preventDefault();
+  $("#account-error").textContent = "";
+  const username = $("#a-username").value.trim();
+  const currentPassword = $("#a-current-password").value;
+  const newPassword = $("#a-new-password").value;
+  const confirmPassword = $("#a-confirm-password").value;
+  if (newPassword && newPassword !== confirmPassword) {
+    $("#account-error").textContent = "两次输入的新密码不一致";
+    return;
+  }
+  try {
+    const data = await api("/api/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        current_password: currentPassword,
+        username,
+        new_password: newPassword || null,
+      }),
+    });
+    state.token = data.access_token;
+    localStorage.setItem(TOKEN_KEY, state.token);
+    $("#account-dialog").close();
+  } catch (err) {
+    $("#account-error").textContent = err.message;
+  }
+}
+
 $("#login-form").addEventListener("submit", login);
 $("#customer-form").addEventListener("submit", saveCustomer);
 $("#project-form").addEventListener("submit", saveProject);
 $("#billing-form").addEventListener("submit", submitBilling);
+$("#account-form").addEventListener("submit", saveAccount);
 
 loadAppDownload();
 if (state.token) {
