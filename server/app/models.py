@@ -51,6 +51,18 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class StockItem(Base):
+    __tablename__ = "stock_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    spec: Mapped[str] = mapped_column(String(64), default="")
+    unit: Mapped[str] = mapped_column(String(16), default="个")
+    stock_qty: Mapped[int] = mapped_column(Integer, default=0)
+    cost_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class Order(Base):
     __tablename__ = "orders"
 
@@ -99,8 +111,8 @@ class StockMovement(Base):
     __tablename__ = "stock_movements"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False, index=True)
-    project_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    item_id: Mapped[int] = mapped_column(ForeignKey("stock_items.id"), nullable=False, index=True)
+    item_name: Mapped[str] = mapped_column(String(128), nullable=False)
     kind: Mapped[str] = mapped_column(String(8), nullable=False, index=True)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)

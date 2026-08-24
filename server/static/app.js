@@ -4,6 +4,7 @@ const state = {
   token: localStorage.getItem(TOKEN_KEY) || "",
   customers: [],
   projects: [],
+  stockItems: [],
   orders: [],
 };
 
@@ -178,44 +179,36 @@ async function saveProject(e) {
   await loadProjects();
 }
 
-function isPhysicalUnit(unit) {
-  return ["支", "个", "盒"].includes(projectUnit(unit));
-}
-
 async function loadInventory() {
   const q = $("#inventory-q").value.trim();
   const qs = q ? `?q=${encodeURIComponent(q)}` : "";
   const list = await api(`/api/inventory${qs}`);
-  state.projects = list;
+  state.stockItems = list;
   $("#inventory-tbody").innerHTML = list
-    .map((p) => {
-      const unit = projectUnit(p.unit);
-      const physical = isPhysicalUnit(unit);
-      return `<tr>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${p.graft_count} ${escapeHtml(unit)}</td>
-        <td>${physical ? `${p.stock_qty || 0} ${escapeHtml(unit)}` : "—"}</td>
-        <td>${physical ? `¥${Number(p.cost_price || 0).toFixed(2)}` : "—"}</td>
-        <td>¥${Number(p.price).toFixed(2)}</td>
-        <td><button data-stock-project="${p.id}">进出货</button></td>
-      </tr>`;
-    })
+    .map(
+      (item) => `<tr>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.spec || "—")}</td>
+        <td>${item.stock_qty || 0} ${escapeHtml(item.unit || "")}</td>
+        <td>¥${Number(item.cost_price || 0).toFixed(2)}</td>
+        <td><button data-stock-item="${item.id}">出货</button></td>
+      </tr>`
+    )
     .join("");
 }
 
-async function openStockDialog(project) {
-  $("#stock-dialog-title").textContent = project.name;
-  $("#stock-project-id").value = project.id;
+async function openStockDialog(item) {
+  $("#stock-dialog-title").textContent = item.name;
+  $("#stock-item-id").value = item.id;
   $("#s-qty").value = 1;
   $("#s-remark").value = "";
-  const unit = projectUnit(project.unit);
-  $("#stock-summary").textContent = `库存 ${project.stock_qty || 0} ${unit} · 进货价 ¥${Number(project.cost_price || 0).toFixed(2)}`;
-  await loadStockMoves(project.id, unit);
+  $("#stock-summary").textContent = `库存 ${item.stock_qty || 0} ${item.unit || ""} · 规格 ${item.spec || "—"} · 进货价 ¥${Number(item.cost_price || 0).toFixed(2)}`;
+  await loadStockMoves(item.id);
   $("#stock-dialog").showModal();
 }
 
-async function loadStockMoves(projectId, unit) {
-  const moves = await api(`/api/inventory/movements?project_id=${projectId}`);
+async function loadStockMoves(itemId) {
+  const moves = await api(`/api/inventory/movements?item_id=${itemId}`);
   const box = $("#stock-moves");
   if (!moves.length) {
     box.innerHTML = `<div class="muted">暂无进出货记录</div>`;
@@ -228,10 +221,10 @@ async function loadStockMoves(projectId, unit) {
       const when = formatVisitTime(m.moved_at || m.created_at).slice(0, 10);
       return `<div class="visit-item">
         <div class="visit-head">
-          <time>${inbound ? "入库" : "出货"} ${inbound ? "+" : "-"}${m.quantity} ${escapeHtml(unit || "")}</time>
+          <time>${inbound ? "入库" : "出货"} ${inbound ? "+" : "-"}${m.quantity}</time>
           <span class="muted">${escapeHtml(when)}</span>
         </div>
-        <p>${escapeHtml(m.project_name || "")}${cost}${m.remark ? " · " + escapeHtml(m.remark) : ""}</p>
+        <p>${escapeHtml(m.item_name || "")}${cost}${m.remark ? " · " + escapeHtml(m.remark) : ""}</p>
       </div>`;
     })
     .join("");
@@ -243,36 +236,26 @@ function todayDate() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-async function openInboundDialog(projectId) {
-  const list = await api("/api/inventory");
-  state.projects = list;
-  if (!list.length) {
-    alert("暂无产品，请先在「项目」里添加");
-    return;
-  }
-  $("#in-product").innerHTML = list
-    .map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
-    .join("");
-  if (projectId) $("#in-product").value = String(projectId);
+async function openInboundDialog(name, spec, unit) {
+  $("#in-name").value = name || "";
+  $("#in-spec").value = spec || "";
+  $("#in-unit").value = ["支", "个", "盒", "次"].includes(unit) ? unit : "个";
   $("#in-date").value = todayDate();
+  $("#in-price").value = "";
   $("#in-qty").value = 1;
-  fillInboundPrice();
   $("#inbound-dialog").showModal();
-}
-
-function fillInboundPrice() {
-  const p = (state.projects || []).find((x) => String(x.id) === $("#in-product").value);
-  $("#in-price").value = p && Number(p.cost_price) > 0 ? Number(p.cost_price) : "";
 }
 
 async function saveInbound(e) {
   e.preventDefault();
-  const projectId = Number($("#in-product").value);
+  const name = $("#in-name").value.trim();
+  const spec = $("#in-spec").value.trim();
+  const unit = $("#in-unit").value || "个";
   const movedAt = $("#in-date").value;
   const unitCost = Number($("#in-price").value);
   const quantity = Number($("#in-qty").value || 0);
-  if (!projectId) {
-    alert("请选择产品名");
+  if (!name) {
+    alert("请填写产品名");
     return;
   }
   if (!movedAt) {
@@ -291,8 +274,10 @@ async function saveInbound(e) {
     await api("/api/inventory/in", {
       method: "POST",
       body: JSON.stringify({
-        project_id: projectId,
+        name,
+        spec,
         quantity,
+        unit,
         unit_cost: unitCost,
         moved_at: movedAt,
       }),
@@ -304,10 +289,10 @@ async function saveInbound(e) {
   }
 }
 
-async function submitStock(kind) {
-  const projectId = Number($("#stock-project-id").value);
+async function submitStock() {
+  const itemId = Number($("#stock-item-id").value);
   const quantity = Number($("#s-qty").value || 0);
-  if (!projectId || quantity < 1) {
+  if (!itemId || quantity < 1) {
     alert("请填写数量");
     return;
   }
@@ -315,16 +300,16 @@ async function submitStock(kind) {
     await api("/api/inventory/out", {
       method: "POST",
       body: JSON.stringify({
-        project_id: projectId,
+        item_id: itemId,
         quantity,
         remark: $("#s-remark").value.trim(),
       }),
     });
     await loadInventory();
-    const fresh = (state.projects || []).find((p) => p.id === projectId);
+    const fresh = (state.stockItems || []).find((p) => p.id === itemId);
     if (fresh) {
-      $("#stock-summary").textContent = `库存 ${fresh.stock_qty || 0} ${projectUnit(fresh.unit)} · 进货价 ¥${Number(fresh.cost_price || 0).toFixed(2)}`;
-      await loadStockMoves(projectId, projectUnit(fresh.unit));
+      $("#stock-summary").textContent = `库存 ${fresh.stock_qty || 0} ${fresh.unit || ""} · 规格 ${fresh.spec || "—"} · 进货价 ¥${Number(fresh.cost_price || 0).toFixed(2)}`;
+      await loadStockMoves(itemId);
     }
     $("#s-qty").value = 1;
     $("#s-remark").value = "";
@@ -517,7 +502,7 @@ document.addEventListener("click", async (e) => {
   if (t.id === "inventory-in") openInboundDialog();
   if (t.id === "inbound-cancel") $("#inbound-dialog").close();
   if (t.id === "stock-cancel") $("#stock-dialog").close();
-  if (t.id === "stock-out") submitStock("OUT");
+  if (t.id === "stock-out") submitStock();
   if (t.id === "order-refresh") loadOrders();
 
   if (t.dataset.editCustomer) {
@@ -556,9 +541,9 @@ document.addEventListener("click", async (e) => {
     await api(`/api/projects/${t.dataset.offProject}`, { method: "DELETE" });
     await loadProjects();
   }
-  if (t.dataset.stockProject) {
-    const p = (state.projects || []).find((x) => String(x.id) === t.dataset.stockProject);
-    if (p) openStockDialog(p);
+  if (t.dataset.stockItem) {
+    const item = (state.stockItems || []).find((x) => String(x.id) === t.dataset.stockItem);
+    if (item) openStockDialog(item);
   }
   if (t.dataset.saveStatus) {
     const select = document.querySelector(`select[data-status-order="${t.dataset.saveStatus}"]`);
@@ -576,7 +561,6 @@ document.addEventListener("input", (e) => {
 document.addEventListener("change", (e) => {
   if (e.target.closest("#billing-projects")) updateBillingTotal();
   if (e.target.id === "order-status") loadOrders();
-  if (e.target.id === "in-product") fillInboundPrice();
 });
 
 async function loadAppDownload() {

@@ -12,8 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
-import com.hairclinic.app.data.Project
-import com.hairclinic.app.data.StockMoveIn
+import com.hairclinic.app.data.StockItem
+import com.hairclinic.app.data.StockOutRequest
 import com.hairclinic.app.databinding.FragmentStockBinding
 import com.hairclinic.app.databinding.ItemStockMoveBinding
 import com.hairclinic.app.ui.projects.ProjectEditFragment
@@ -22,8 +22,7 @@ import kotlinx.coroutines.launch
 class StockFragment : Fragment() {
     private var _binding: FragmentStockBinding? = null
     private val binding get() = _binding!!
-    private var projectId: Int = -1
-    private var unit: String = "个"
+    private var itemId: Int = -1
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentStockBinding.inflate(inflater, container, false)
@@ -31,14 +30,17 @@ class StockFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        projectId = arguments?.getInt(ARG_ID, -1) ?: -1
-        unit = arguments?.getString(ARG_UNIT).orEmpty().ifBlank { "个" }
-        binding.pageTitle.text = arguments?.getString(ARG_NAME).orEmpty().ifBlank { "库存" }
-        binding.stockQtyText.text = "库存 ${arguments?.getInt(ARG_STOCK) ?: 0} $unit"
+        itemId = arguments?.getInt(ARG_ID, -1) ?: -1
+        val name = arguments?.getString(ARG_NAME).orEmpty().ifBlank { "库存" }
+        binding.pageTitle.text = name
+        binding.stockQtyText.text = "库存 ${arguments?.getInt(ARG_STOCK) ?: 0}"
         binding.costPriceText.text = "进货价 ¥${ProjectEditFragment.formatPrice(arguments?.getDouble(ARG_COST) ?: 0.0)}"
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.inBtn.setOnClickListener {
-            findNavController().navigate(R.id.inboundFragment, InboundFragment.args(projectId))
+            findNavController().navigate(
+                R.id.inboundFragment,
+                InboundFragment.args(name, arguments?.getString(ARG_SPEC), arguments?.getString(ARG_UNIT)),
+            )
         }
         binding.outBtn.setOnClickListener { outbound() }
         refresh()
@@ -48,9 +50,9 @@ class StockFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val api = ApiClient.get(requireContext())
-                val project = api.getProject(projectId)
-                bindProject(project)
-                val moves = api.listStockMovements(projectId)
+                val item = api.getStockItem(itemId)
+                bindItem(item)
+                val moves = api.listStockMovements(itemId)
                 binding.moveBox.removeAllViews()
                 binding.moveEmpty.isVisible = moves.isEmpty()
                 val pine = ContextCompat.getColor(requireContext(), R.color.pine)
@@ -63,11 +65,11 @@ class StockFragment : Fragment() {
                     row.moveKind.setBackgroundResource(
                         if (inbound) R.drawable.bg_badge else R.drawable.bg_badge_warn
                     )
-                    row.moveQty.text = "${if (inbound) "+" else "-"}${m.quantity} $unit"
+                    row.moveQty.text = "${if (inbound) "+" else "-"}${m.quantity} ${item.unitLabel()}"
                     row.moveTime.text = m.timeText()
                     val cost = if (m.unit_cost > 0) "¥${ProjectEditFragment.formatPrice(m.unit_cost)}" else ""
-                    val name = m.project_name.ifBlank { "" }
-                    row.moveMeta.text = listOf(name, cost, m.remark).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "无备注" }
+                    row.moveMeta.text = listOf(m.item_name, item.specText().takeIf { it != "—" }, cost, m.remark)
+                        .filter { !it.isNullOrBlank() }.joinToString(" · ").ifBlank { "无备注" }
                     binding.moveBox.addView(row.root)
                 }
             } catch (e: Exception) {
@@ -76,11 +78,10 @@ class StockFragment : Fragment() {
         }
     }
 
-    private fun bindProject(project: Project) {
-        unit = project.unitLabel()
-        binding.pageTitle.text = project.name
-        binding.stockQtyText.text = project.stockText()
-        binding.costPriceText.text = project.costText()
+    private fun bindItem(item: StockItem) {
+        binding.pageTitle.text = item.name
+        binding.stockQtyText.text = item.stockText()
+        binding.costPriceText.text = "${item.costText()} · 规格 ${item.specText()}"
     }
 
     private fun outbound() {
@@ -92,8 +93,8 @@ class StockFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 ApiClient.get(requireContext()).stockOut(
-                    StockMoveIn(
-                        project_id = projectId,
+                    StockOutRequest(
+                        item_id = itemId,
                         quantity = qty,
                         remark = binding.outRemark.text?.toString()?.trim().orEmpty(),
                     )
@@ -114,18 +115,20 @@ class StockFragment : Fragment() {
     }
 
     companion object {
-        const val ARG_ID = "project_id"
+        const val ARG_ID = "item_id"
         const val ARG_NAME = "name"
+        const val ARG_SPEC = "spec"
         const val ARG_UNIT = "unit"
         const val ARG_STOCK = "stock"
         const val ARG_COST = "cost"
 
-        fun args(project: Project): Bundle = Bundle().apply {
-            putInt(ARG_ID, project.id ?: -1)
-            putString(ARG_NAME, project.name)
-            putString(ARG_UNIT, project.unitLabel())
-            putInt(ARG_STOCK, project.stock_qty)
-            putDouble(ARG_COST, project.cost_price)
+        fun args(item: StockItem): Bundle = Bundle().apply {
+            putInt(ARG_ID, item.id)
+            putString(ARG_NAME, item.name)
+            putString(ARG_SPEC, item.spec)
+            putString(ARG_UNIT, item.unitLabel())
+            putInt(ARG_STOCK, item.stock_qty)
+            putDouble(ARG_COST, item.cost_price)
         }
     }
 }

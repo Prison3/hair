@@ -163,14 +163,6 @@
                     app:thumbTint="@color/pine"
                     app:trackTint="@color/pine_soft" />
             </LinearLayout>
-            <TextView
-                android:id="@+id/stockHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="库存请到底栏「库存」进货 / 出货"
-                android:textColor="@color/ink_soft"
-                android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout

@@ -126,14 +126,55 @@ class ProjectOut(ProjectBase):
 
 STOCK_IN = "IN"
 STOCK_OUT = "OUT"
-PHYSICAL_UNITS = ("支", "个", "盒")
 
 
-class StockMoveIn(BaseModel):
-    project_id: int
+class StockItemOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    spec: str = ""
+    unit: str = "个"
+    stock_qty: int = 0
+    cost_price: Decimal = Decimal("0")
+    created_at: datetime
+
+
+class StockInBody(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    spec: str = Field(default="", max_length=64)
     quantity: int = Field(ge=1)
-    unit_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    unit: str = Field(default="个", max_length=16)
+    unit_cost: Decimal = Field(ge=0)
     moved_at: Optional[date] = None
+
+    @field_validator("name")
+    @classmethod
+    def trim_name(cls, value: str) -> str:
+        name = (value or "").strip()
+        if not name:
+            raise ValueError("请填写产品名")
+        return name
+
+    @field_validator("spec")
+    @classmethod
+    def trim_spec(cls, value: str) -> str:
+        return (value or "").strip()
+
+    @field_validator("unit")
+    @classmethod
+    def check_unit(cls, value: str) -> str:
+        unit = (value or "个").strip() or "个"
+        if unit == "单位":
+            unit = "次"
+        if unit not in PROJECT_UNITS:
+            raise ValueError("单位须为：支 / 个 / 盒 / 次")
+        return unit
+
+
+class StockOutBody(BaseModel):
+    item_id: int
+    quantity: int = Field(ge=1)
     remark: str = ""
 
     @field_validator("remark")
@@ -146,8 +187,8 @@ class StockMovementOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    project_id: int
-    project_name: str
+    item_id: int
+    item_name: str
     kind: str
     quantity: int
     unit_cost: Decimal

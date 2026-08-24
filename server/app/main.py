@@ -33,11 +33,13 @@ def migrate_schema() -> None:
             if "cost_price" not in pcols:
                 conn.execute(text("ALTER TABLE projects ADD COLUMN cost_price NUMERIC(12, 2) DEFAULT 0"))
         mcols = [row[1] for row in conn.execute(text("PRAGMA table_info(stock_movements)")).fetchall()]
-        if mcols and "moved_at" not in mcols:
-            conn.execute(text("ALTER TABLE stock_movements ADD COLUMN moved_at DATE"))
-            conn.execute(
-                text("UPDATE stock_movements SET moved_at = date(created_at) WHERE moved_at IS NULL")
-            )
+        if mcols and "item_id" not in mcols:
+            conn.execute(text("DROP TABLE stock_movements"))
+        icols = [row[1] for row in conn.execute(text("PRAGMA table_info(stock_items)")).fetchall()]
+        if icols and "unit" not in icols:
+            conn.execute(text("ALTER TABLE stock_items ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
+        if icols and "spec" not in icols:
+            conn.execute(text("ALTER TABLE stock_items ADD COLUMN spec VARCHAR(64) DEFAULT ''"))
 
 
 def seed_data() -> None:
@@ -87,6 +89,7 @@ def seed_data() -> None:
 def create_app() -> FastAPI:
     Base.metadata.create_all(bind=engine)
     migrate_schema()
+    Base.metadata.create_all(bind=engine)
     seed_data()
 
     app = FastAPI(title="心尚植发", version="1.0.0")

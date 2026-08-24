@@ -11,7 +11,6 @@ from ..auth import get_current_admin
 from ..database import get_db
 from ..models import Admin, Customer, Order, OrderItem, Project
 from ..schemas import OrderCreate, OrderOut, OrderStatusUpdate
-from ..stock import is_physical, stock_out
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
@@ -119,8 +118,6 @@ def create_order(
                 quantity=item.quantity,
             )
         )
-        if is_physical(project):
-            stock_out(db, project, item.quantity, f"订单 {order_no}", admin.id)
 
     order = Order(
         order_no=order_no,

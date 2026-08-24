@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -13,8 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
-import com.hairclinic.app.data.Project
-import com.hairclinic.app.data.StockMoveIn
+import com.hairclinic.app.data.StockInRequest
 import com.hairclinic.app.databinding.FragmentInboundBinding
 import com.hairclinic.app.ui.projects.ProjectEditFragment
 import kotlinx.coroutines.launch
@@ -23,8 +21,6 @@ import java.util.Calendar
 class InboundFragment : Fragment() {
     private var _binding: FragmentInboundBinding? = null
     private val binding get() = _binding!!
-    private var products: List<Project> = emptyList()
-    private var selected: Project? = null
     private var inboundDate: String = today()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -33,54 +29,23 @@ class InboundFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val preset = arguments?.getString(ARG_NAME).orEmpty()
+        if (preset.isNotBlank()) binding.inputName.setText(preset)
+        val spec = arguments?.getString(ARG_SPEC).orEmpty()
+        if (spec.isNotBlank()) binding.inputSpec.setText(spec)
+        binding.inputUnit.setAdapter(ArrayAdapter(requireContext(), R.layout.item_spinner, ProjectEditFragment.UNITS))
+        binding.inputUnit.keyListener = null
+        val unit = arguments?.getString(ARG_UNIT).orEmpty().ifBlank { "个" }
+        binding.inputUnit.setText(if (unit in ProjectEditFragment.UNITS) unit else "个", false)
         binding.inputDate.text = inboundDate
         binding.inputDate.setOnClickListener { pickDate() }
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.submitBtn.setOnClickListener { submit() }
-        binding.productSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                selected = products.getOrNull(position)
-                fillPriceHint()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                selected = null
-            }
-        }
-        loadProducts()
     }
 
-    private fun loadProducts() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                products = ApiClient.get(requireContext()).listInventory()
-                val labels = if (products.isEmpty()) {
-                    listOf("暂无产品，请先在「项目」里添加")
-                } else {
-                    products.map { "${it.name}（库存 ${it.stock_qty} ${it.unitLabel()}）" }
-                }
-                binding.productSpinner.adapter = ArrayAdapter(
-                    requireContext(),
-                    R.layout.item_spinner,
-                    labels,
-                ).also { it.setDropDownViewResource(R.layout.item_spinner) }
-                val presetId = arguments?.getInt(ARG_ID, -1) ?: -1
-                val index = products.indexOfFirst { it.id == presetId }.takeIf { it >= 0 } ?: 0
-                if (products.isNotEmpty()) {
-                    binding.productSpinner.setSelection(index)
-                    selected = products[index]
-                    fillPriceHint()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun fillPriceHint() {
-        val project = selected ?: return
-        if (project.cost_price > 0) {
-            binding.inputPrice.setText(ProjectEditFragment.formatPrice(project.cost_price))
-        }
+    private fun selectedUnit(): String {
+        val value = binding.inputUnit.text?.toString()?.trim().orEmpty()
+        return if (value in ProjectEditFragment.UNITS) value else "个"
     }
 
     private fun pickDate() {
@@ -103,9 +68,9 @@ class InboundFragment : Fragment() {
     }
 
     private fun submit() {
-        val project = selected
-        if (project?.id == null) {
-            Toast.makeText(requireContext(), "请选择产品名", Toast.LENGTH_SHORT).show()
+        val name = binding.inputName.text?.toString()?.trim().orEmpty()
+        if (name.isBlank()) {
+            Toast.makeText(requireContext(), "请填写产品名", Toast.LENGTH_SHORT).show()
             return
         }
         val date = binding.inputDate.text?.toString()?.trim().orEmpty()
@@ -126,9 +91,11 @@ class InboundFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 ApiClient.get(requireContext()).stockIn(
-                    StockMoveIn(
-                        project_id = project.id,
+                    StockInRequest(
+                        name = name,
+                        spec = binding.inputSpec.text?.toString()?.trim().orEmpty(),
                         quantity = qty,
+                        unit = selectedUnit(),
                         unit_cost = price,
                         moved_at = date,
                     )
@@ -147,10 +114,14 @@ class InboundFragment : Fragment() {
     }
 
     companion object {
-        const val ARG_ID = "project_id"
+        const val ARG_NAME = "name"
+        const val ARG_SPEC = "spec"
+        const val ARG_UNIT = "unit"
 
-        fun args(projectId: Int? = null): Bundle = Bundle().apply {
-            putInt(ARG_ID, projectId ?: -1)
+        fun args(name: String? = null, spec: String? = null, unit: String? = null): Bundle = Bundle().apply {
+            putString(ARG_NAME, name.orEmpty())
+            putString(ARG_SPEC, spec.orEmpty())
+            putString(ARG_UNIT, unit.orEmpty())
         }
 
         fun today(): String {

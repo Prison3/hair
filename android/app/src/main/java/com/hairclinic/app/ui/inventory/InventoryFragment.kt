@@ -13,12 +13,11 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
-import com.hairclinic.app.data.Project
+import com.hairclinic.app.data.StockItem
 import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.ui.customers.BadgeTone
 import com.hairclinic.app.ui.customers.Item
 import com.hairclinic.app.ui.customers.SimpleAdapter
-import com.hairclinic.app.ui.projects.ProjectEditFragment
 import kotlinx.coroutines.launch
 
 class InventoryFragment : Fragment() {
@@ -33,8 +32,8 @@ class InventoryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "库存"
-        binding.pageSubtitle.text = "入库、出货与进货价格"
-        binding.searchInput.hint = "搜索项目名称"
+        binding.pageSubtitle.text = "自定义产品入库、出货"
+        binding.searchInput.hint = "搜索产品名"
         binding.addBtn.text = "入库"
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
@@ -61,32 +60,29 @@ class InventoryFragment : Fragment() {
             try {
                 val q = binding.searchInput.text?.toString()?.trim().orEmpty().ifBlank { null }
                 val list = ApiClient.get(requireContext()).listInventory(q)
-                adapter.submit(list.map { p ->
-                    val price = ProjectEditFragment.formatPrice(p.price)
+                adapter.submit(list.map { item ->
                     Item(
-                        title = p.name,
-                        subtitle = "售价 ¥$price · ${p.specText()}\n${p.stockText()} · ${p.costText()}",
-                        badge = if (!p.isPhysical()) "不计库存"
-                        else if (p.stock_qty <= 0) "缺货" else "${p.stock_qty}",
+                        title = item.name,
+                        subtitle = "规格 ${item.specText()}\n${item.stockText()} · ${item.costText()}",
+                        badge = if (item.stock_qty <= 0) "缺货" else "${item.stock_qty}${item.unitLabel()}",
                         badgeTone = when {
-                            !p.isPhysical() -> BadgeTone.MUTED
-                            p.stock_qty <= 0 -> BadgeTone.WARN
-                            p.stock_qty <= 5 -> BadgeTone.GOLD
+                            item.stock_qty <= 0 -> BadgeTone.WARN
+                            item.stock_qty <= 5 -> BadgeTone.GOLD
                             else -> BadgeTone.SUCCESS
                         },
-                        onClick = { openStock(p) },
+                        onClick = { openStock(item) },
                     )
                 })
                 binding.emptyText.isVisible = list.isEmpty()
-                binding.emptyText.text = "暂无项目"
+                binding.emptyText.text = "暂无库存，点击下方入库"
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun openStock(project: Project) {
-        findNavController().navigate(R.id.stockFragment, StockFragment.args(project))
+    private fun openStock(item: StockItem) {
+        findNavController().navigate(R.id.stockFragment, StockFragment.args(item))
     }
 
     override fun onDestroyView() {

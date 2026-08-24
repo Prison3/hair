@@ -67,14 +67,14 @@
         <header class="page-header">
           <h2>库存管理</h2>
           <div class="row">
-            <input id="inventory-q" placeholder="搜索项目名称" />
+            <input id="inventory-q" placeholder="搜索产品名" />
             <button id="inventory-search">搜索</button>
             <button id="inventory-in" class="primary">入库</button>
           </div>
         </header>
         <table>
           <thead>
-            <tr><th>项目</th><th>规格</th><th>库存</th><th>进货价</th><th>售价</th><th>操作</th></tr>
+            <tr><th>产品名</th><th>规格</th><th>库存</th><th>进货价</th><th>操作</th></tr>
           </thead>
           <tbody id="inventory-tbody"></tbody>
         </table>
@@ -188,7 +188,7 @@
   <dialog id="stock-dialog">
     <form id="stock-form" class="dialog-form visit-dialog">
       <h3 id="stock-dialog-title">进出货</h3>
-      <input type="hidden" id="stock-project-id" />
+      <input type="hidden" id="stock-item-id" />
       <p id="stock-summary" class="muted"></p>
       <div id="stock-moves" class="visit-list"></div>
       <div class="row" style="align-items:stretch">
@@ -206,7 +206,10 @@
     <form id="inbound-form" class="dialog-form">
       <h3>入库</h3>
       <label>产品名
-        <select id="in-product" required></select>
+        <input id="in-name" required maxlength="128" placeholder="自定义输入" />
+      </label>
+      <label>规格
+        <input id="in-spec" maxlength="64" placeholder="如 5ml / 10支装" />
       </label>
       <label>进货日期
         <input id="in-date" type="date" required />
@@ -214,9 +217,19 @@
       <label>价格
         <input id="in-price" type="number" min="0" step="0.01" required />
       </label>
-      <label>数量
-        <input id="in-qty" type="number" min="1" value="1" required />
-      </label>
+      <div class="row" style="align-items:stretch">
+        <label style="flex:1">数量
+          <input id="in-qty" type="number" min="1" value="1" required />
+        </label>
+        <label style="flex:1">单位
+          <select id="in-unit">
+            <option value="支">支</option>
+            <option value="个" selected>个</option>
+            <option value="盒">盒</option>
+            <option value="次">次</option>
+          </select>
+        </label>
+      </div>
       <div class="row end">
         <button type="button" id="inbound-cancel">取消</button>
         <button type="submit" class="primary">确认入库</button>

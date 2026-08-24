@@ -55,10 +55,9 @@ class ProjectsFragment : Fragment() {
                 val list = ApiClient.get(requireContext()).listProjects()
                 adapter.submit(list.map { p ->
                     val price = ProjectEditFragment.formatPrice(p.price)
-                    val stockLine = if (p.isPhysical()) "${p.stockText()} · ${p.costText()}" else p.description.ifBlank { "无描述" }
                     Item(
                         title = p.name,
-                        subtitle = "¥$price · ${p.specText()}\n$stockLine",
+                        subtitle = "¥$price · ${p.specText()}\n${p.description.ifBlank { "无描述" }}",
                         badge = if (p.active) "启用" else "停用",
                         badgeTone = if (p.active) BadgeTone.SUCCESS else BadgeTone.MUTED,
                         onClick = { openEditor(p) },

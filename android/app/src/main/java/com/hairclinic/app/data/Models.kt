@@ -67,8 +67,26 @@ data class Project(
     }
 
     fun specText(): String = "$graft_count ${unitLabel()}"
+}
 
-    fun isPhysical(): Boolean = unitLabel() in setOf("支", "个", "盒")
+data class StockItem(
+    val id: Int,
+    val name: String,
+    val spec: String = "",
+    val unit: String = "个",
+    val stock_qty: Int = 0,
+    val cost_price: Double = 0.0,
+    val created_at: String? = null,
+) {
+    fun unitLabel(): String {
+        val raw = unit.trim()
+        return when {
+            raw.isBlank() || raw == "单位" -> "个"
+            else -> raw
+        }
+    }
+
+    fun specText(): String = spec.trim().ifBlank { "—" }
 
     fun stockText(): String = "库存 $stock_qty ${unitLabel()}"
 
@@ -78,18 +96,25 @@ data class Project(
     }
 }
 
-data class StockMoveIn(
-    val project_id: Int,
+data class StockInRequest(
+    val name: String,
+    val spec: String = "",
     val quantity: Int,
-    val unit_cost: Double = 0.0,
+    val unit: String = "个",
+    val unit_cost: Double,
     val moved_at: String? = null,
+)
+
+data class StockOutRequest(
+    val item_id: Int,
+    val quantity: Int,
     val remark: String = "",
 )
 
 data class StockMovement(
     val id: Int,
-    val project_id: Int,
-    val project_name: String,
+    val item_id: Int,
+    val item_name: String,
     val kind: String,
     val quantity: Int,
     val unit_cost: Double = 0.0,
