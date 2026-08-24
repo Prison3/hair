@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_admin
 from ..database import get_db
-from ..models import Admin, Project
+from ..models import Admin, OrderItem, Project
 from ..schemas import ProjectCreate, ProjectOut, ProjectUpdate
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -67,8 +67,8 @@ def update_project(
     return project
 
 
-@router.delete("/{project_id}", response_model=ProjectOut)
-def deactivate_project(
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(
     project_id: int,
     db: Session = Depends(get_db),
     _: Admin = Depends(get_current_admin),
@@ -76,7 +76,9 @@ def deactivate_project(
     project = db.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="项目不存在")
-    project.active = False
+    used = db.query(OrderItem).filter(OrderItem.project_id == project_id).first()
+    if used:
+        raise HTTPException(status_code=400, detail="该项目已有订单，无法删除")
+    db.delete(project)
     db.commit()
-    db.refresh(project)
-    return project
+    return None

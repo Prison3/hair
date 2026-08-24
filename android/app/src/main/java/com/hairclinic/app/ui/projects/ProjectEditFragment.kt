@@ -6,14 +6,18 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Project
 import com.hairclinic.app.databinding.FragmentProjectEditBinding
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import retrofit2.HttpException
 
 class ProjectEditFragment : Fragment() {
     private var _binding: FragmentProjectEditBinding? = null
@@ -42,10 +46,12 @@ class ProjectEditFragment : Fragment() {
             binding.inputDesc.setText(arguments?.getString(ARG_DESC).orEmpty())
             binding.inputActive.isChecked = arguments?.getBoolean(ARG_ACTIVE, true) ?: true
         }
+        binding.deleteBtn.isVisible = isEdit
 
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.cancelBtn.setOnClickListener { findNavController().navigateUp() }
         binding.saveBtn.setOnClickListener { save() }
+        binding.deleteBtn.setOnClickListener { confirmDelete() }
     }
 
     private fun selectUnit(raw: String?) {
@@ -59,6 +65,29 @@ class ProjectEditFragment : Fragment() {
     private fun selectedUnit(): String {
         val value = binding.inputUnit.text?.toString()?.trim().orEmpty()
         return if (value in UNITS) value else "个"
+    }
+
+    private fun confirmDelete() {
+        if (projectId <= 0) return
+        val name = binding.inputName.text?.toString()?.trim().orEmpty().ifBlank { "该项目" }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("删除项目")
+            .setMessage("确定删除「$name」？删除后无法恢复。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("删除") { _, _ -> delete() }
+            .show()
+    }
+
+    private fun delete() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                ApiClient.get(requireContext()).deleteProject(projectId)
+                Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
+                findNavController().navigateUp()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), apiError(e, "删除失败"), Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun save() {
@@ -115,5 +144,16 @@ class ProjectEditFragment : Fragment() {
 
         fun formatPrice(price: Double): String =
             if (price % 1.0 == 0.0) price.toLong().toString() else "%.2f".format(price)
+
+        fun apiError(e: Exception, fallback: String): String {
+            if (e is HttpException) {
+                val raw = e.response()?.errorBody()?.string().orEmpty()
+                runCatching {
+                    val detail = JSONObject(raw).opt("detail")
+                    if (detail is String && detail.isNotBlank()) return detail
+                }
+            }
+            return e.message ?: fallback
+        }
     }
 }

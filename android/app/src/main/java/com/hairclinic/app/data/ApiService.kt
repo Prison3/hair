@@ -60,7 +60,7 @@ interface ApiService {
     suspend fun updateProject(@Path("id") id: Int, @Body body: Project): Project
 
     @DELETE("api/projects/{id}")
-    suspend fun deactivateProject(@Path("id") id: Int): Project
+    suspend fun deleteProject(@Path("id") id: Int)
 
     @GET("api/inventory")
     suspend fun listInventory(@Query("q") q: String? = null): List<StockItem>

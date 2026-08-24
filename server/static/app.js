@@ -143,7 +143,7 @@ async function loadProjects() {
       <td><span class="badge ${p.active ? "" : "off"}">${p.active ? "启用" : "停用"}</span></td>
       <td class="row">
         <button data-edit-project="${p.id}">编辑</button>
-        ${p.active ? `<button data-off-project="${p.id}">停用</button>` : ""}
+        <button data-del-project="${p.id}">删除</button>
       </td>
     </tr>`
     )
@@ -537,9 +537,14 @@ document.addEventListener("click", async (e) => {
     const p = state.projects.find((x) => String(x.id) === t.dataset.editProject);
     openProjectDialog(p);
   }
-  if (t.dataset.offProject) {
-    await api(`/api/projects/${t.dataset.offProject}`, { method: "DELETE" });
-    await loadProjects();
+  if (t.dataset.delProject) {
+    if (!confirm("确认删除该项目？删除后无法恢复。")) return;
+    try {
+      await api(`/api/projects/${t.dataset.delProject}`, { method: "DELETE" });
+      await loadProjects();
+    } catch (err) {
+      alert(err.message);
+    }
   }
   if (t.dataset.stockItem) {
     const item = (state.stockItems || []).find((x) => String(x.id) === t.dataset.stockItem);
