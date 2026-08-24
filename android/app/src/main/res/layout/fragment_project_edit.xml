@@ -36,7 +36,7 @@
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:fontFamily="serif"
-                android:text="添加客户"
+                android:text="新建项目"
                 android:textColor="@color/pine"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -47,7 +47,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="14dp"
-            android:text="请完整填写客户资料后保存"
+            android:text="填写套餐名称、价格与毛囊单位后保存"
             android:textColor="@color/ink_soft"
             android:textSize="13sp" />
 
@@ -62,105 +62,56 @@
                 style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="姓名"
-                app:startIconDrawable="@drawable/ic_form_person">
+                android:hint="套餐名称"
+                app:startIconDrawable="@drawable/ic_nav_projects">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/inputName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textPersonName"
+                    android:inputType="text"
                     android:textColor="@color/ink"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.XinShang.TextInput"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:hint="手机号"
-                app:startIconDrawable="@drawable/ic_form_phone">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/inputPhone"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="phone"
-                    android:textColor="@color/ink"
-                    android:textSize="15sp" />
-            </com.google.android.material.textfield.TextInputLayout>
+                android:orientation="horizontal">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_form_panel"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_form_gender" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:text="性别"
-                    android:textColor="@color/ink_soft"
-                    android:textSize="13sp" />
-                <RadioGroup
-                    android:id="@+id/inputGender"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:orientation="horizontal">
-                    <RadioButton
-                        android:id="@+id/genderMale"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/pine"
-                        android:minWidth="0dp"
-                        android:text="男"
-                        android:textColor="@color/ink"
-                        android:textSize="15sp" />
-                    <RadioButton
-                        android:id="@+id/genderFemale"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="24dp"
-                        android:buttonTint="@color/pine"
-                        android:minWidth="0dp"
-                        android:text="女"
-                        android:textColor="@color/ink"
-                        android:textSize="15sp" />
-                </RadioGroup>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_form_panel"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_form_date" />
-                <TextView
-                    android:id="@+id/inputBirthday"
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.XinShang.TextInput"
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginStart="12dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="7dp"
                     android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:hint="生日 · 点击选择日期"
-                    android:textColor="@color/ink"
-                    android:textColorHint="@color/ink_soft"
-                    android:textSize="15sp" />
+                    android:hint="价格"
+                    app:startIconDrawable="@drawable/ic_form_price">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputPrice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal"
+                        android:textColor="@color/ink"
+                        android:textSize="15sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.XinShang.TextInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="7dp"
+                    android:layout_weight="1"
+                    android:hint="毛囊单位"
+                    app:startIconDrawable="@drawable/ic_form_graft">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputGraft"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:textColor="@color/ink"
+                        android:textSize="15sp" />
+                </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -168,10 +119,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:hint="备注（可选）"
+                android:hint="描述（可选）"
                 app:startIconDrawable="@drawable/ic_form_note">
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/inputNotes"
+                    android:id="@+id/inputDesc"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="top"
@@ -180,6 +131,30 @@
                     android:textColor="@color/ink"
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_form_panel"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="启用该套餐"
+                    android:textColor="@color/ink"
+                    android:textSize="15sp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/inputActive"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    app:thumbTint="@color/pine"
+                    app:trackTint="@color/pine_soft" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout

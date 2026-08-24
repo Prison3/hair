@@ -9,5 +9,7 @@
     <color name="pine2">#3D6656</color>
     <color name="cinnabar">#B4452A</color>
     <color name="pine_soft">#1A2C4A3E</color>
+    <color name="cinnabar_soft">#1AB4452A</color>
+    <color name="gold">#9A6B24</color>
     <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

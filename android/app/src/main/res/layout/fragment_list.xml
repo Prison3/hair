@@ -6,7 +6,7 @@
     android:background="@color/paper"
     android:orientation="vertical"
     android:paddingHorizontal="16dp"
-    android:paddingTop="16dp"
+    android:paddingTop="8dp"
     android:paddingBottom="12dp">
 
     <TextView
@@ -16,7 +16,7 @@
         android:fontFamily="serif"
         android:text="客户"
         android:textColor="@color/pine"
-        android:textSize="22sp"
+        android:textSize="24sp"
         android:textStyle="bold" />
 
     <TextView
@@ -24,10 +24,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="14dp"
         android:text="管理客户资料"
         android:textColor="@color/ink_soft"
-        android:textSize="12sp" />
+        android:textSize="13sp" />
 
     <LinearLayout
         android:id="@+id/searchRow"
@@ -45,17 +45,30 @@
             android:layout_weight="1"
             android:background="@android:color/transparent"
             android:hint="搜索姓名 / 手机号"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
             android:paddingHorizontal="10dp"
             android:paddingVertical="8dp"
             android:textColor="@color/ink"
             android:textColorHint="@color/ink_soft"
             android:textSize="14sp" />
 
+        <Spinner
+            android:id="@+id/filterSpinner"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:paddingHorizontal="8dp"
+            android:visibility="gone" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/searchBtn"
             style="@style/Widget.XinShang.Button.Ghost"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:minWidth="0dp"
             android:text="搜索"
             app:cornerRadius="10dp" />
@@ -80,20 +93,21 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:padding="24dp"
+            android:padding="28dp"
             android:text="暂无数据"
             android:textColor="@color/ink_soft"
             android:textSize="14sp"
+            android:background="@drawable/bg_card"
             android:visibility="gone" />
     </FrameLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addBtn"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_marginTop="8dp"
         android:text="添加"
         android:textSize="16sp"
         app:backgroundTint="@color/pine"
-        app:cornerRadius="12dp" />
+        app:cornerRadius="14dp" />
 </LinearLayout>

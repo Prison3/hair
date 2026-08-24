@@ -32,12 +32,12 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.serverUrl.setText(Session.displayBaseUrl(requireContext()))
         binding.advancedPanel.isVisible = false
-        binding.advancedBtn.text = "Advanced ▸"
+        binding.advancedBtn.text = "服务器设置 ▸"
 
         binding.advancedBtn.setOnClickListener {
             advancedOpen = !advancedOpen
             binding.advancedPanel.isVisible = advancedOpen
-            binding.advancedBtn.text = if (advancedOpen) "Advanced ▾" else "Advanced ▸"
+            binding.advancedBtn.text = if (advancedOpen) "服务器设置 ▾" else "服务器设置 ▸"
             if (advancedOpen) {
                 binding.serverUrl.setText(Session.displayBaseUrl(requireContext()))
             }
@@ -53,7 +53,7 @@ class LoginFragment : Fragment() {
             ).show()
             advancedOpen = false
             binding.advancedPanel.isVisible = false
-            binding.advancedBtn.text = "Advanced ▸"
+            binding.advancedBtn.text = "服务器设置 ▸"
         }
 
         binding.loginBtn.setOnClickListener {

@@ -1,17 +1,14 @@
 package com.hairclinic.app.ui.billing
 
 import android.os.Bundle
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.hairclinic.app.R
@@ -21,6 +18,7 @@ import com.hairclinic.app.data.OrderCreate
 import com.hairclinic.app.data.OrderItemIn
 import com.hairclinic.app.data.Project
 import com.hairclinic.app.databinding.FragmentBillingBinding
+import com.hairclinic.app.databinding.ItemBillingProjectBinding
 import kotlinx.coroutines.launch
 
 class BillingFragment : Fragment() {
@@ -40,70 +38,30 @@ class BillingFragment : Fragment() {
         load()
     }
 
-    private fun dp(v: Int): Int =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).toInt()
-
     private fun load() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val api = ApiClient.get(requireContext())
                 customers = api.listCustomers()
                 projects = api.listProjects(activeOnly = true)
-                binding.customerSpinner.adapter = ArrayAdapter(
-                    requireContext(),
-                    android.R.layout.simple_spinner_dropdown_item,
-                    customers.map { "${it.name}（${it.phone}）" },
-                )
+                val labels = if (customers.isEmpty()) {
+                    listOf("暂无客户，请先在「客户」页录入")
+                } else {
+                    customers.map { "${it.name}（${it.phone}）" }
+                }
+                val spinnerAdapter = ArrayAdapter(requireContext(), R.layout.item_spinner, labels)
+                spinnerAdapter.setDropDownViewResource(R.layout.item_spinner)
+                binding.customerSpinner.adapter = spinnerAdapter
                 binding.projectBox.removeAllViews()
                 checks.clear()
-                val ink = ContextCompat.getColor(requireContext(), R.color.ink)
-                val inkSoft = ContextCompat.getColor(requireContext(), R.color.ink_soft)
                 projects.forEach { p ->
-                    val row = LinearLayout(requireContext()).apply {
-                        orientation = LinearLayout.VERTICAL
-                        background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_input)
-                        setPadding(dp(12), dp(10), dp(12), dp(10))
-                        val lp = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                        )
-                        lp.bottomMargin = dp(8)
-                        layoutParams = lp
-                    }
-                    val top = LinearLayout(requireContext()).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        gravity = android.view.Gravity.CENTER_VERTICAL
-                    }
-                    val cb = CheckBox(requireContext()).apply {
-                        text = p.name
-                        setTextColor(ink)
-                        textSize = 15f
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                        setOnCheckedChangeListener { _, _ -> updateTotal() }
-                    }
-                    val qty = EditText(requireContext()).apply {
-                        setText("1")
-                        hint = "数量"
-                        inputType = android.text.InputType.TYPE_CLASS_NUMBER
-                        setTextColor(ink)
-                        setHintTextColor(inkSoft)
-                        background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_chip)
-                        setPadding(dp(10), dp(6), dp(10), dp(6))
-                        minWidth = dp(64)
-                        setOnFocusChangeListener { _, _ -> updateTotal() }
-                    }
-                    top.addView(cb)
-                    top.addView(qty)
-                    val meta = TextView(requireContext()).apply {
-                        text = "¥${"%.2f".format(p.price)} · ${p.graft_count} 单位"
-                        setTextColor(inkSoft)
-                        textSize = 12f
-                        setPadding(dp(4), dp(2), 0, 0)
-                    }
-                    row.addView(top)
-                    row.addView(meta)
-                    binding.projectBox.addView(row)
-                    checks += cb to qty
+                    val row = ItemBillingProjectBinding.inflate(layoutInflater, binding.projectBox, false)
+                    row.projectCheck.text = p.name
+                    row.projectMeta.text = "¥${"%.2f".format(p.price)} · ${p.graft_count} 单位"
+                    row.projectCheck.setOnCheckedChangeListener { _, _ -> updateTotal() }
+                    row.projectQty.doAfterTextChanged { updateTotal() }
+                    binding.projectBox.addView(row.root)
+                    checks += row.projectCheck to row.projectQty
                 }
                 updateTotal()
             } catch (e: Exception) {
@@ -119,7 +77,7 @@ class BillingFragment : Fragment() {
                 total += projects[index].price * (qty.text.toString().toIntOrNull() ?: 1)
             }
         }
-        binding.totalText.text = "合计：¥${"%.2f".format(total)}"
+        binding.totalText.text = "¥${"%.2f".format(total)}"
     }
 
     private fun submit() {
@@ -148,6 +106,12 @@ class BillingFragment : Fragment() {
                     )
                 )
                 Toast.makeText(requireContext(), "订单已生成 ${order.order_no}", Toast.LENGTH_LONG).show()
+                checks.forEach { (cb, qty) ->
+                    cb.isChecked = false
+                    qty.setText("1")
+                }
+                binding.remark.setText("")
+                updateTotal()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "开单失败", Toast.LENGTH_SHORT).show()
             }

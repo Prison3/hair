@@ -4,7 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -18,10 +20,15 @@ import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.databinding.ItemSimpleBinding
 import kotlinx.coroutines.launch
 
+enum class BadgeTone { SUCCESS, GOLD, WARN, MUTED }
+
 data class Item(
     val title: String,
     val subtitle: String = "",
-    val onClick: () -> Unit,
+    val badge: String = "",
+    val badgeTone: BadgeTone = BadgeTone.SUCCESS,
+    val clickable: Boolean = true,
+    val onClick: () -> Unit = {},
 )
 
 class SimpleAdapter : RecyclerView.Adapter<SimpleAdapter.VH>() {
@@ -40,10 +47,26 @@ class SimpleAdapter : RecyclerView.Adapter<SimpleAdapter.VH>() {
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = items[position]
+        val ctx = holder.itemView.context
         holder.binding.title.text = item.title
         holder.binding.subtitle.text = item.subtitle
         holder.binding.subtitle.isVisible = item.subtitle.isNotBlank()
-        holder.binding.root.setOnClickListener { item.onClick() }
+        holder.binding.badge.text = item.badge
+        holder.binding.badge.isVisible = item.badge.isNotBlank()
+        if (item.badge.isNotBlank()) {
+            val (bg, color) = when (item.badgeTone) {
+                BadgeTone.SUCCESS -> R.drawable.bg_badge to R.color.pine
+                BadgeTone.GOLD -> R.drawable.bg_badge_gold to R.color.gold
+                BadgeTone.WARN -> R.drawable.bg_badge_warn to R.color.cinnabar
+                BadgeTone.MUTED -> R.drawable.bg_badge_muted to R.color.ink_soft
+            }
+            holder.binding.badge.setBackgroundResource(bg)
+            holder.binding.badge.setTextColor(ContextCompat.getColor(ctx, color))
+        }
+        holder.binding.chevron.isVisible = item.clickable
+        holder.binding.root.isClickable = item.clickable
+        holder.binding.root.isFocusable = item.clickable
+        holder.binding.root.setOnClickListener(if (item.clickable) ({ item.onClick() }) else null)
     }
 
     override fun getItemCount() = items.size
@@ -64,9 +87,18 @@ class CustomersFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "客户"
         binding.pageSubtitle.text = "录入与查询客户资料"
+        binding.addBtn.text = "添加客户"
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
         binding.searchBtn.setOnClickListener { load() }
+        binding.searchInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                load()
+                true
+            } else {
+                false
+            }
+        }
         binding.addBtn.setOnClickListener { openEditor(null) }
         load()
     }
@@ -88,7 +120,9 @@ class CustomersFragment : Fragment() {
                 adapter.submit(list.map { c ->
                     Item(
                         title = c.name,
-                        subtitle = "${c.phone} · ${c.gender.ifBlank { "未知" }} · 生日 ${c.birthday ?: "-"}\n${c.notes.ifBlank { "无备注" }}",
+                        subtitle = "${c.phone} · 生日 ${c.birthday ?: "-"}\n${c.notes.ifBlank { "无备注" }}",
+                        badge = c.gender.ifBlank { "未知" },
+                        badgeTone = if (c.gender == "女") BadgeTone.GOLD else BadgeTone.SUCCESS,
                         onClick = { openEditor(c) },
                     )
                 })

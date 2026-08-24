@@ -21,6 +21,10 @@
         android:name="com.hairclinic.app.ui.projects.ProjectsFragment"
         android:label="项目" />
     <fragment
+        android:id="@+id/projectEditFragment"
+        android:name="com.hairclinic.app.ui.projects.ProjectEditFragment"
+        android:label="编辑项目" />
+    <fragment
         android:id="@+id/billingFragment"
         android:name="com.hairclinic.app.ui.billing.BillingFragment"
         android:label="开单" />

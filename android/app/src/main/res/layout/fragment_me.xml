@@ -20,7 +20,7 @@
             android:fontFamily="serif"
             android:text="我的"
             android:textColor="@color/pine"
-            android:textSize="22sp"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
         <TextView
@@ -30,7 +30,7 @@
             android:layout_marginBottom="16dp"
             android:text="账号、版本与设置"
             android:textColor="@color/ink_soft"
-            android:textSize="12sp" />
+            android:textSize="13sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -44,10 +44,10 @@
                 android:id="@+id/avatarLetter"
                 android:layout_width="52dp"
                 android:layout_height="52dp"
-                android:background="@drawable/bg_chip"
+                android:background="@drawable/bg_avatar"
                 android:gravity="center"
                 android:text="店"
-                android:textColor="@color/pine"
+                android:textColor="@color/paper2"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -62,6 +62,7 @@
                     android:id="@+id/usernameText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="serif"
                     android:text="用户"
                     android:textColor="@color/ink"
                     android:textSize="18sp"

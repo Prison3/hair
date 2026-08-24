@@ -35,22 +35,16 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="36dp"
-            android:background="@drawable/bg_form_panel"
+            android:layout_marginTop="40dp"
+            android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="20dp">
 
             <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="用户名"
-                app:boxBackgroundMode="outline"
-                app:boxCornerRadiusBottomEnd="4dp"
-                app:boxCornerRadiusBottomStart="4dp"
-                app:boxCornerRadiusTopEnd="4dp"
-                app:boxCornerRadiusTopStart="4dp"
-                app:boxStrokeColor="@color/pine"
-                app:hintTextColor="@color/pine">
+                android:hint="用户名">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/username"
                     android:layout_width="match_parent"
@@ -62,17 +56,12 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:hint="密码"
-                app:boxBackgroundMode="outline"
-                app:boxCornerRadiusBottomEnd="4dp"
-                app:boxCornerRadiusBottomStart="4dp"
-                app:boxCornerRadiusTopEnd="4dp"
-                app:boxCornerRadiusTopStart="4dp"
-                app:boxStrokeColor="@color/pine"
-                app:hintTextColor="@color/pine">
+                app:endIconMode="password_toggle">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/password"
                     android:layout_width="match_parent"
@@ -86,12 +75,13 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/loginBtn"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="52dp"
                 android:layout_marginTop="20dp"
                 android:text="登录"
+                android:textSize="16sp"
                 android:textColor="@color/paper2"
                 app:backgroundTint="@color/pine"
-                app:cornerRadius="4dp" />
+                app:cornerRadius="12dp" />
 
             <TextView
                 android:id="@+id/errorText"
@@ -110,7 +100,7 @@
             android:layout_marginTop="48dp"
             android:paddingHorizontal="12dp"
             android:paddingVertical="8dp"
-            android:text="Advanced ▸"
+            android:text="服务器设置 ▸"
             android:textColor="@color/ink_soft"
             android:textSize="12sp" />
 
@@ -119,25 +109,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:background="@drawable/bg_form_panel"
+            android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:padding="14dp"
+            android:padding="16dp"
             android:visibility="gone">
 
             <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:boxBackgroundMode="outline"
-                app:boxCornerRadiusBottomEnd="4dp"
-                app:boxCornerRadiusBottomStart="4dp"
-                app:boxCornerRadiusTopEnd="4dp"
-                app:boxCornerRadiusTopStart="4dp"
-                app:boxStrokeColor="@color/pine">
+                android:hint="服务器地址">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/serverUrl"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="server"
                     android:inputType="textUri"
                     android:textColor="@color/ink"
                     android:textSize="14sp" />
@@ -145,15 +130,11 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/saveServerBtn"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.XinShang.Button.Ghost"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_marginTop="10dp"
-                android:text="save"
-                android:textColor="@color/pine"
-                app:cornerRadius="4dp"
-                app:strokeColor="@color/line"
-                app:strokeWidth="1dp" />
+                android:layout_height="44dp"
+                android:layout_marginTop="12dp"
+                android:text="保存地址" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
