@@ -65,6 +65,15 @@ interface ApiService {
     @GET("api/inventory")
     suspend fun listInventory(@Query("q") q: String? = null): List<StockItem>
 
+    @POST("api/inventory")
+    suspend fun createStockItem(@Body body: StockItemWrite): StockItem
+
+    @PUT("api/inventory/{id}")
+    suspend fun updateStockItem(@Path("id") id: Int, @Body body: StockItemWrite): StockItem
+
+    @DELETE("api/inventory/{id}")
+    suspend fun deleteStockItem(@Path("id") id: Int)
+
     @GET("api/inventory/{id}")
     suspend fun getStockItem(@Path("id") id: Int): StockItem
 
@@ -72,7 +81,12 @@ interface ApiService {
     suspend fun listStockMovements(
         @Query("item_id") itemId: Int? = null,
         @Query("kind") kind: String? = null,
+        @Query("q") q: String? = null,
+        @Query("limit") limit: Int? = null,
     ): List<StockMovement>
+
+    @DELETE("api/inventory/movements/{id}")
+    suspend fun deleteStockMovement(@Path("id") id: Int)
 
     @POST("api/inventory/in")
     suspend fun stockIn(@Body body: StockInRequest): StockMovement

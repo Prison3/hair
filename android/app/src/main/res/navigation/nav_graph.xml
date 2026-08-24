@@ -29,6 +29,14 @@
         android:name="com.hairclinic.app.ui.inventory.InventoryFragment"
         android:label="库存" />
     <fragment
+        android:id="@+id/productListFragment"
+        android:name="com.hairclinic.app.ui.inventory.ProductListFragment"
+        android:label="产品" />
+    <fragment
+        android:id="@+id/productEditFragment"
+        android:name="com.hairclinic.app.ui.inventory.ProductEditFragment"
+        android:label="录入产品" />
+    <fragment
         android:id="@+id/inboundFragment"
         android:name="com.hairclinic.app.ui.inventory.InboundFragment"
         android:label="入库" />

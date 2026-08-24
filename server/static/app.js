@@ -181,20 +181,80 @@ async function saveProject(e) {
 
 async function loadInventory() {
   const q = $("#inventory-q").value.trim();
-  const qs = q ? `?q=${encodeURIComponent(q)}` : "";
-  const list = await api(`/api/inventory${qs}`);
-  state.stockItems = list;
-  $("#inventory-tbody").innerHTML = list
-    .map(
-      (item) => `<tr>
-        <td>${escapeHtml(item.name)}</td>
-        <td>${escapeHtml(item.spec || "—")}</td>
-        <td>${item.stock_qty || 0} ${escapeHtml(item.unit || "")}</td>
-        <td>¥${Number(item.cost_price || 0).toFixed(2)}</td>
-        <td><button data-stock-item="${item.id}">出货</button></td>
-      </tr>`
-    )
-    .join("");
+  const params = new URLSearchParams({ kind: "IN", limit: "200" });
+  if (q) params.set("q", q);
+  const list = await api(`/api/inventory/movements?${params}`);
+  $("#inventory-tbody").innerHTML = list.length
+    ? list
+        .map(
+          (m) => `<tr>
+            <td>${escapeHtml(formatVisitTime(m.moved_at || m.created_at).slice(0, 10))}</td>
+            <td>${escapeHtml(m.item_name || "")}</td>
+          </tr>`
+        )
+        .join("")
+    : `<tr><td colspan="2" class="muted">暂无入库记录</td></tr>`;
+}
+
+async function loadStockItems() {
+  state.stockItems = await api("/api/inventory");
+  return state.stockItems;
+}
+
+async function openProductsDialog() {
+  await renderProductsTable();
+  $("#products-dialog").showModal();
+}
+
+async function renderProductsTable() {
+  const list = await loadStockItems();
+  $("#product-tbody").innerHTML = list.length
+    ? list
+        .map(
+          (item) => `<tr>
+            <td>${escapeHtml(item.name)}</td>
+            <td>${escapeHtml(item.spec || "—")}</td>
+            <td>${escapeHtml(item.unit || "")}</td>
+            <td>${item.stock_qty || 0}</td>
+            <td>
+              <button data-edit-item="${item.id}">编辑</button>
+              <button data-stock-item="${item.id}">出货</button>
+            </td>
+          </tr>`
+        )
+        .join("")
+    : `<tr><td colspan="5" class="muted">暂无产品，请先添加</td></tr>`;
+}
+
+function openProductDialog(item) {
+  $("#product-dialog-title").textContent = item ? "编辑产品" : "录入产品";
+  $("#product-id").value = item ? item.id : "";
+  $("#prod-name").value = item ? item.name : "";
+  $("#prod-spec").value = item ? item.spec || "" : "";
+  $("#prod-unit").value = PROJECT_UNITS.includes(item?.unit) ? item.unit : "个";
+  $("#product-dialog").showModal();
+}
+
+async function saveProduct(e) {
+  e.preventDefault();
+  const id = $("#product-id").value;
+  const body = {
+    name: $("#prod-name").value.trim(),
+    spec: $("#prod-spec").value.trim(),
+    unit: $("#prod-unit").value || "个",
+  };
+  if (!body.name) {
+    alert("请填写产品名");
+    return;
+  }
+  try {
+    if (id) await api(`/api/inventory/${id}`, { method: "PUT", body: JSON.stringify(body) });
+    else await api("/api/inventory", { method: "POST", body: JSON.stringify(body) });
+    $("#product-dialog").close();
+    await renderProductsTable();
+  } catch (err) {
+    alert(err.message);
+  }
 }
 
 async function openStockDialog(item) {
@@ -236,26 +296,41 @@ function todayDate() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-async function openInboundDialog(name, spec, unit) {
-  $("#in-name").value = name || "";
-  $("#in-spec").value = spec || "";
-  $("#in-unit").value = ["支", "个", "盒", "次"].includes(unit) ? unit : "个";
+async function openInboundDialog(itemId) {
+  const items = await loadStockItems();
+  if (!items.length) {
+    alert("请先添加产品");
+    openProductsDialog();
+    return;
+  }
+  $("#in-item").innerHTML = items
+    .map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`)
+    .join("");
+  const selected = items.find((x) => String(x.id) === String(itemId)) || items[0];
+  $("#in-item").value = selected.id;
+  syncInboundMeta();
   $("#in-date").value = todayDate();
   $("#in-price").value = "";
   $("#in-qty").value = 1;
   $("#inbound-dialog").showModal();
 }
 
+function syncInboundMeta() {
+  const item = (state.stockItems || []).find((x) => String(x.id) === $("#in-item").value);
+  $("#in-meta").textContent = item
+    ? `规格 ${item.spec || "—"} · 单位 ${item.unit || ""} · 库存 ${item.stock_qty || 0}`
+    : "请选择产品";
+}
+
 async function saveInbound(e) {
   e.preventDefault();
-  const name = $("#in-name").value.trim();
-  const spec = $("#in-spec").value.trim();
-  const unit = $("#in-unit").value || "个";
+  const itemId = Number($("#in-item").value);
+  const item = (state.stockItems || []).find((x) => x.id === itemId);
   const movedAt = $("#in-date").value;
   const unitCost = Number($("#in-price").value);
   const quantity = Number($("#in-qty").value || 0);
-  if (!name) {
-    alert("请填写产品名");
+  if (!itemId || !item) {
+    alert("请选择产品");
     return;
   }
   if (!movedAt) {
@@ -274,10 +349,11 @@ async function saveInbound(e) {
     await api("/api/inventory/in", {
       method: "POST",
       body: JSON.stringify({
-        name,
-        spec,
+        item_id: itemId,
+        name: item.name,
+        spec: item.spec || "",
         quantity,
-        unit,
+        unit: item.unit || "个",
         unit_cost: unitCost,
         moved_at: movedAt,
       }),
@@ -305,7 +381,7 @@ async function submitStock() {
         remark: $("#s-remark").value.trim(),
       }),
     });
-    await loadInventory();
+    await loadStockItems();
     const fresh = (state.stockItems || []).find((p) => p.id === itemId);
     if (fresh) {
       $("#stock-summary").textContent = `库存 ${fresh.stock_qty || 0} ${fresh.unit || ""} · 规格 ${fresh.spec || "—"} · 进货价 ¥${Number(fresh.cost_price || 0).toFixed(2)}`;
@@ -499,8 +575,12 @@ document.addEventListener("click", async (e) => {
   if (t.id === "project-new") openProjectDialog(null);
   if (t.id === "project-cancel") $("#project-dialog").close();
   if (t.id === "inventory-search") loadInventory();
+  if (t.id === "inventory-products") openProductsDialog();
   if (t.id === "inventory-in") openInboundDialog();
   if (t.id === "inbound-cancel") $("#inbound-dialog").close();
+  if (t.id === "products-close") $("#products-dialog").close();
+  if (t.id === "product-new") openProductDialog(null);
+  if (t.id === "product-cancel") $("#product-dialog").close();
   if (t.id === "stock-cancel") $("#stock-dialog").close();
   if (t.id === "stock-out") submitStock();
   if (t.id === "order-refresh") loadOrders();
@@ -546,6 +626,10 @@ document.addEventListener("click", async (e) => {
       alert(err.message);
     }
   }
+  if (t.dataset.editItem) {
+    const item = (state.stockItems || []).find((x) => String(x.id) === t.dataset.editItem);
+    if (item) openProductDialog(item);
+  }
   if (t.dataset.stockItem) {
     const item = (state.stockItems || []).find((x) => String(x.id) === t.dataset.stockItem);
     if (item) openStockDialog(item);
@@ -566,6 +650,7 @@ document.addEventListener("input", (e) => {
 document.addEventListener("change", (e) => {
   if (e.target.closest("#billing-projects")) updateBillingTotal();
   if (e.target.id === "order-status") loadOrders();
+  if (e.target.id === "in-item") syncInboundMeta();
 });
 
 async function loadAppDownload() {
@@ -632,6 +717,7 @@ $("#visit-form").addEventListener("submit", saveVisit);
 $("#project-form").addEventListener("submit", saveProject);
 $("#billing-form").addEventListener("submit", submitBilling);
 $("#inbound-form").addEventListener("submit", saveInbound);
+$("#product-form").addEventListener("submit", saveProduct);
 $("#account-form").addEventListener("submit", saveAccount);
 
 loadAppDownload();

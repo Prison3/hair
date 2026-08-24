@@ -11,20 +11,20 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
-import com.hairclinic.app.data.StockMovement
+import com.hairclinic.app.data.StockItem
 import com.hairclinic.app.databinding.FragmentListBinding
-import com.hairclinic.app.databinding.ItemInboundRowBinding
+import com.hairclinic.app.ui.customers.Item
+import com.hairclinic.app.ui.customers.SimpleAdapter
 import com.hairclinic.app.ui.projects.ProjectEditFragment
 import kotlinx.coroutines.launch
 
-class InventoryFragment : Fragment() {
+class ProductListFragment : Fragment() {
     private var _binding: FragmentListBinding? = null
     private val binding get() = _binding!!
-    private val adapter = InboundRecordAdapter { confirmDelete(it) }
+    private val adapter = SimpleAdapter()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentListBinding.inflate(inflater, container, false)
@@ -32,20 +32,16 @@ class InventoryFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.pageTitle.text = "库存"
-        binding.pageSubtitle.text = "入库记录"
-        binding.searchInput.hint = "搜索产品名 / 入库编号"
-        binding.tableHeader.isVisible = true
-        binding.addBtn.text = "入库"
-        binding.extraBtn.isVisible = true
-        binding.extraBtn.text = "产品"
+        binding.pageTitle.text = "产品"
+        binding.pageSubtitle.text = "产品档案，入库前请先录入"
+        binding.backBtn.isVisible = true
+        binding.backBtn.setOnClickListener { findNavController().navigateUp() }
+        binding.searchInput.hint = "搜索产品名"
+        binding.addBtn.text = "添加产品"
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
         binding.addBtn.setOnClickListener {
-            findNavController().navigate(R.id.inboundFragment)
-        }
-        binding.extraBtn.setOnClickListener {
-            findNavController().navigate(R.id.productListFragment)
+            findNavController().navigate(R.id.productEditFragment, ProductEditFragment.args())
         }
         binding.searchBtn.setOnClickListener { load() }
         binding.searchInput.setOnEditorActionListener { _, actionId, _ ->
@@ -66,33 +62,39 @@ class InventoryFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val q = binding.searchInput.text?.toString()?.trim().orEmpty().ifBlank { null }
-                val list = ApiClient.get(requireContext()).listStockMovements(
-                    kind = "IN",
-                    q = q,
-                    limit = 200,
-                )
-                adapter.submit(list)
+                val list = ApiClient.get(requireContext()).listInventory(q)
+                adapter.submit(list.map { item ->
+                    Item(
+                        title = item.name,
+                        onClick = { openEditor(item) },
+                        onDelete = { confirmDelete(item) },
+                    )
+                })
                 binding.emptyText.isVisible = list.isEmpty()
-                binding.emptyText.text = "暂无入库记录，点击下方入库"
+                binding.emptyText.text = "暂无产品，点击下方添加"
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun confirmDelete(record: StockMovement) {
+    private fun openEditor(item: StockItem) {
+        findNavController().navigate(R.id.productEditFragment, ProductEditFragment.args(item))
+    }
+
+    private fun confirmDelete(item: StockItem) {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("删除入库记录")
-            .setMessage("确定删除「${record.item_name}」${record.inboundNoText()} 的入库记录？")
+            .setTitle("删除产品")
+            .setMessage("确定删除「${item.name}」？相关入库记录也会一起删除。")
             .setNegativeButton("取消", null)
-            .setPositiveButton("删除") { _, _ -> delete(record) }
+            .setPositiveButton("删除") { _, _ -> delete(item) }
             .show()
     }
 
-    private fun delete(record: StockMovement) {
+    private fun delete(item: StockItem) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                ApiClient.get(requireContext()).deleteStockMovement(record.id)
+                ApiClient.get(requireContext()).deleteStockItem(item.id)
                 Toast.makeText(requireContext(), "已删除", Toast.LENGTH_SHORT).show()
                 load()
             } catch (e: Exception) {
@@ -105,32 +107,4 @@ class InventoryFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-}
-
-class InboundRecordAdapter(
-    private val onDelete: (StockMovement) -> Unit,
-) : RecyclerView.Adapter<InboundRecordAdapter.VH>() {
-    private val items = mutableListOf<StockMovement>()
-
-    fun submit(data: List<StockMovement>) {
-        items.clear()
-        items.addAll(data)
-        notifyDataSetChanged()
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val binding = ItemInboundRowBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return VH(binding)
-    }
-
-    override fun onBindViewHolder(holder: VH, position: Int) {
-        val item = items[position]
-        holder.binding.colTime.text = item.inboundNoText()
-        holder.binding.colProduct.text = item.item_name
-        holder.binding.deleteBtn.setOnClickListener { onDelete(item) }
-    }
-
-    override fun getItemCount() = items.size
-
-    class VH(val binding: ItemInboundRowBinding) : RecyclerView.ViewHolder(binding.root)
 }

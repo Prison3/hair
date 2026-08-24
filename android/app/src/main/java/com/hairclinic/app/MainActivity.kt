@@ -31,6 +31,8 @@ class MainActivity : AppCompatActivity() {
             val isLogin = destination.id == R.id.loginFragment
             val isEdit = destination.id == R.id.customerEditFragment ||
                 destination.id == R.id.projectEditFragment ||
+                destination.id == R.id.productListFragment ||
+                destination.id == R.id.productEditFragment ||
                 destination.id == R.id.inboundFragment ||
                 destination.id == R.id.stockFragment
             val showChrome = !isLogin

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from fastapi import HTTPException
@@ -12,6 +12,35 @@ from .schemas import STOCK_IN, STOCK_OUT
 
 def _money(value: Decimal) -> Decimal:
     return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def make_inbound_no(db: Session, when: datetime | None = None) -> str:
+    base = (when or datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+    no = base
+    n = 1
+    while db.query(StockMovement).filter(StockMovement.inbound_no == no).first():
+        n += 1
+        no = f"{base}-{n}"
+    return no
+
+
+def backfill_inbound_nos() -> None:
+    from .database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(StockMovement)
+            .filter(StockMovement.kind == STOCK_IN)
+            .filter((StockMovement.inbound_no == "") | (StockMovement.inbound_no.is_(None)))
+            .all()
+        )
+        for movement in rows:
+            movement.inbound_no = make_inbound_no(db, movement.created_at)
+            db.flush()
+        db.commit()
+    finally:
+        db.close()
 
 
 def get_or_create_item(db: Session, name: str, unit: str, spec: str) -> StockItem:
@@ -36,15 +65,24 @@ def get_or_create_item(db: Session, name: str, unit: str, spec: str) -> StockIte
 
 def stock_in(
     db: Session,
-    name: str,
     quantity: int,
     unit_cost: Decimal,
+    item_id: int | None = None,
+    name: str = "",
     unit: str = "个",
     spec: str = "",
     admin_id: int | None = None,
     moved_at: date | None = None,
 ) -> StockMovement:
-    item = get_or_create_item(db, name, unit, spec)
+    if item_id:
+        item = db.get(StockItem, item_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="产品不存在")
+    else:
+        name = (name or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="请选择产品")
+        item = get_or_create_item(db, name, unit, spec)
     qty = int(quantity)
     cost = _money(unit_cost or 0)
     old_qty = int(item.stock_qty or 0)
@@ -62,6 +100,7 @@ def stock_in(
         unit_cost=cost,
         remark="",
         moved_at=moved_at or date.today(),
+        inbound_no=make_inbound_no(db),
         created_by=admin_id,
     )
     db.add(movement)
@@ -96,3 +135,22 @@ def stock_out(
     )
     db.add(movement)
     return movement
+
+
+def delete_inbound(
+    db: Session,
+    movement: StockMovement,
+) -> None:
+    if movement.kind != STOCK_IN:
+        raise HTTPException(status_code=400, detail="只能删除入库记录")
+    item = db.get(StockItem, movement.item_id)
+    qty = int(movement.quantity or 0)
+    if item:
+        on_hand = int(item.stock_qty or 0)
+        if on_hand < qty:
+            raise HTTPException(status_code=400, detail="该入库已出货，无法删除")
+        item.stock_qty = on_hand - qty
+        if item.stock_qty <= 0:
+            item.stock_qty = 0
+            item.cost_price = Decimal("0")
+    db.delete(movement)

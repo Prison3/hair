@@ -10,6 +10,7 @@ from sqlalchemy import text
 from .auth import hash_password
 from .database import Base, SessionLocal, engine
 from .models import Admin, Project
+from .stock import backfill_inbound_nos
 from .routers import app_release, auth, customers, inventory, orders, projects
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -40,6 +41,9 @@ def migrate_schema() -> None:
             conn.execute(text("ALTER TABLE stock_items ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
         if icols and "spec" not in icols:
             conn.execute(text("ALTER TABLE stock_items ADD COLUMN spec VARCHAR(64) DEFAULT ''"))
+        mcols = [row[1] for row in conn.execute(text("PRAGMA table_info(stock_movements)")).fetchall()]
+        if mcols and "inbound_no" not in mcols:
+            conn.execute(text("ALTER TABLE stock_movements ADD COLUMN inbound_no VARCHAR(32) DEFAULT ''"))
 
 
 def seed_data() -> None:
@@ -90,6 +94,7 @@ def create_app() -> FastAPI:
     Base.metadata.create_all(bind=engine)
     migrate_schema()
     Base.metadata.create_all(bind=engine)
+    backfill_inbound_nos()
     seed_data()
 
     app = FastAPI(title="心尚植发", version="1.0.0")

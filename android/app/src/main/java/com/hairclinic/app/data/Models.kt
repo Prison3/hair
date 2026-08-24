@@ -96,8 +96,13 @@ data class StockItem(
     }
 }
 
-data class StockInRequest(
+data class StockItemWrite(
     val name: String,
+)
+
+data class StockInRequest(
+    val item_id: Int? = null,
+    val name: String = "",
     val spec: String = "",
     val quantity: Int,
     val unit: String = "个",
@@ -119,12 +124,18 @@ data class StockMovement(
     val quantity: Int,
     val unit_cost: Double = 0.0,
     val remark: String = "",
+    val inbound_no: String = "",
     val moved_at: String? = null,
     val created_at: String,
 ) {
     fun kindLabel(): String = if (kind == "IN") "入库" else "出货"
 
     fun timeText(): String = formatVisitTime(moved_at ?: created_at).take(10)
+
+    fun inboundNoText(): String {
+        if (inbound_no.isNotBlank()) return inbound_no
+        return created_at.replace('T', ' ').replace('Z', ' ').trim().take(19)
+    }
 }
 
 data class OrderItemIn(val project_id: Int, val quantity: Int = 1)

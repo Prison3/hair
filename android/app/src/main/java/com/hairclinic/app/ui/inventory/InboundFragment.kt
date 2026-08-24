@@ -7,14 +7,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.StockInRequest
+import com.hairclinic.app.data.StockItem
 import com.hairclinic.app.databinding.FragmentInboundBinding
-import com.hairclinic.app.ui.projects.ProjectEditFragment
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -22,6 +23,8 @@ class InboundFragment : Fragment() {
     private var _binding: FragmentInboundBinding? = null
     private val binding get() = _binding!!
     private var inboundDate: String = today()
+    private var products: List<StockItem> = emptyList()
+    private var selected: StockItem? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentInboundBinding.inflate(inflater, container, false)
@@ -29,23 +32,49 @@ class InboundFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val preset = arguments?.getString(ARG_NAME).orEmpty()
-        if (preset.isNotBlank()) binding.inputName.setText(preset)
-        val spec = arguments?.getString(ARG_SPEC).orEmpty()
-        if (spec.isNotBlank()) binding.inputSpec.setText(spec)
-        binding.inputUnit.setAdapter(ArrayAdapter(requireContext(), R.layout.item_spinner, ProjectEditFragment.UNITS))
-        binding.inputUnit.keyListener = null
-        val unit = arguments?.getString(ARG_UNIT).orEmpty().ifBlank { "个" }
-        binding.inputUnit.setText(if (unit in ProjectEditFragment.UNITS) unit else "个", false)
         binding.inputDate.text = inboundDate
         binding.inputDate.setOnClickListener { pickDate() }
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.submitBtn.setOnClickListener { submit() }
+        binding.inputProduct.keyListener = null
+        binding.inputProduct.setOnItemClickListener { _, _, position, _ ->
+            selected = products.getOrNull(position)
+            bindMeta()
+        }
+        loadProducts()
     }
 
-    private fun selectedUnit(): String {
-        val value = binding.inputUnit.text?.toString()?.trim().orEmpty()
-        return if (value in ProjectEditFragment.UNITS) value else "个"
+    private fun loadProducts() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                products = ApiClient.get(requireContext()).listInventory()
+                val names = products.map { it.name }
+                binding.inputProduct.setAdapter(ArrayAdapter(requireContext(), R.layout.item_spinner, names))
+                val presetId = arguments?.getInt(ARG_ITEM_ID, -1) ?: -1
+                selected = products.firstOrNull { it.id == presetId }
+                    ?: products.firstOrNull { it.name == arguments?.getString(ARG_NAME).orEmpty() }
+                if (selected != null) {
+                    binding.inputProduct.setText(selected!!.name, false)
+                } else if (products.size == 1) {
+                    selected = products.first()
+                    binding.inputProduct.setText(selected!!.name, false)
+                }
+                bindMeta()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "加载产品失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun bindMeta() {
+        binding.productMeta.isVisible = products.isEmpty()
+        binding.productMeta.text = "暂无产品，请先在产品表录入"
+    }
+
+    private fun currentProduct(): StockItem? {
+        selected?.let { return it }
+        val name = binding.inputProduct.text?.toString()?.trim().orEmpty()
+        return products.firstOrNull { it.name == name }
     }
 
     private fun pickDate() {
@@ -68,9 +97,13 @@ class InboundFragment : Fragment() {
     }
 
     private fun submit() {
-        val name = binding.inputName.text?.toString()?.trim().orEmpty()
-        if (name.isBlank()) {
-            Toast.makeText(requireContext(), "请填写产品名", Toast.LENGTH_SHORT).show()
+        val item = currentProduct()
+        if (item == null) {
+            Toast.makeText(
+                requireContext(),
+                if (products.isEmpty()) "请先添加产品" else "请选择产品",
+                Toast.LENGTH_SHORT,
+            ).show()
             return
         }
         val date = binding.inputDate.text?.toString()?.trim().orEmpty()
@@ -92,10 +125,11 @@ class InboundFragment : Fragment() {
             try {
                 ApiClient.get(requireContext()).stockIn(
                     StockInRequest(
-                        name = name,
-                        spec = binding.inputSpec.text?.toString()?.trim().orEmpty(),
+                        item_id = item.id,
+                        name = item.name,
+                        spec = item.spec,
                         quantity = qty,
-                        unit = selectedUnit(),
+                        unit = item.unitLabel(),
                         unit_cost = price,
                         moved_at = date,
                     )
@@ -114,14 +148,12 @@ class InboundFragment : Fragment() {
     }
 
     companion object {
+        const val ARG_ITEM_ID = "item_id"
         const val ARG_NAME = "name"
-        const val ARG_SPEC = "spec"
-        const val ARG_UNIT = "unit"
 
-        fun args(name: String? = null, spec: String? = null, unit: String? = null): Bundle = Bundle().apply {
+        fun args(itemId: Int = -1, name: String? = null): Bundle = Bundle().apply {
+            putInt(ARG_ITEM_ID, itemId)
             putString(ARG_NAME, name.orEmpty())
-            putString(ARG_SPEC, spec.orEmpty())
-            putString(ARG_UNIT, unit.orEmpty())
         }
 
         fun today(): String {

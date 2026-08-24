@@ -9,25 +9,48 @@
     android:paddingTop="8dp"
     android:paddingBottom="12dp">
 
-    <TextView
-        android:id="@+id/pageTitle"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="serif"
-        android:text="客户"
-        android:textColor="@color/pine"
-        android:textSize="24sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/pageSubtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
         android:layout_marginBottom="14dp"
-        android:text="管理客户资料"
-        android:textColor="@color/ink_soft"
-        android:textSize="13sp" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <ImageButton
+            android:id="@+id/backBtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_nav_back"
+            android:visibility="gone"
+            app:tint="@color/pine" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/pageTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="serif"
+                android:text="客户"
+                android:textColor="@color/pine"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/pageSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="管理客户资料"
+                android:textColor="@color/ink_soft"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/searchRow"
@@ -74,10 +97,40 @@
             app:cornerRadius="10dp" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/tableHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_card"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/tableCol1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.4"
+            android:text="入库编号"
+            android:textColor="@color/ink_soft"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/tableCol2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="产品"
+            android:textColor="@color/ink_soft"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="4dp"
         android:layout_weight="1">
 
         <androidx.recyclerview.widget.RecyclerView

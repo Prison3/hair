@@ -30,6 +30,7 @@ data class Item(
     val badgeTone: BadgeTone = BadgeTone.SUCCESS,
     val clickable: Boolean = true,
     val onClick: () -> Unit = {},
+    val onDelete: (() -> Unit)? = null,
 )
 
 class SimpleAdapter : RecyclerView.Adapter<SimpleAdapter.VH>() {
@@ -65,6 +66,10 @@ class SimpleAdapter : RecyclerView.Adapter<SimpleAdapter.VH>() {
             holder.binding.badge.setTextColor(ContextCompat.getColor(ctx, color))
         }
         holder.binding.chevron.isVisible = item.clickable
+        holder.binding.deleteBtn.isVisible = item.onDelete != null
+        holder.binding.deleteBtn.setOnClickListener(
+            if (item.onDelete != null) ({ item.onDelete.invoke() }) else null
+        )
         holder.binding.root.isClickable = item.clickable
         holder.binding.root.isFocusable = item.clickable
         holder.binding.root.setOnClickListener(if (item.clickable) ({ item.onClick() }) else null)

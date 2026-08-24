@@ -37,10 +37,7 @@ class StockFragment : Fragment() {
         binding.costPriceText.text = "进货价 ¥${ProjectEditFragment.formatPrice(arguments?.getDouble(ARG_COST) ?: 0.0)}"
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.inBtn.setOnClickListener {
-            findNavController().navigate(
-                R.id.inboundFragment,
-                InboundFragment.args(name, arguments?.getString(ARG_SPEC), arguments?.getString(ARG_UNIT)),
-            )
+            findNavController().navigate(R.id.inboundFragment, InboundFragment.args(itemId))
         }
         binding.outBtn.setOnClickListener { outbound() }
         refresh()
@@ -65,10 +62,10 @@ class StockFragment : Fragment() {
                     row.moveKind.setBackgroundResource(
                         if (inbound) R.drawable.bg_badge else R.drawable.bg_badge_warn
                     )
-                    row.moveQty.text = "${if (inbound) "+" else "-"}${m.quantity} ${item.unitLabel()}"
-                    row.moveTime.text = m.timeText()
+                    row.moveQty.text = "${if (inbound) "+" else "-"}${m.quantity}"
+                    row.moveTime.text = if (inbound) m.inboundNoText() else m.timeText()
                     val cost = if (m.unit_cost > 0) "¥${ProjectEditFragment.formatPrice(m.unit_cost)}" else ""
-                    row.moveMeta.text = listOf(m.item_name, item.specText().takeIf { it != "—" }, cost, m.remark)
+                    row.moveMeta.text = listOf(m.item_name, cost, m.remark)
                         .filter { !it.isNullOrBlank() }.joinToString(" · ").ifBlank { "无备注" }
                     binding.moveBox.addView(row.root)
                 }
@@ -80,8 +77,8 @@ class StockFragment : Fragment() {
 
     private fun bindItem(item: StockItem) {
         binding.pageTitle.text = item.name
-        binding.stockQtyText.text = item.stockText()
-        binding.costPriceText.text = "${item.costText()} · 规格 ${item.specText()}"
+        binding.stockQtyText.text = "库存 ${item.stock_qty}"
+        binding.costPriceText.text = item.costText()
     }
 
     private fun outbound() {

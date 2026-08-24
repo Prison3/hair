@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class TokenOut(BaseModel):
@@ -88,6 +88,15 @@ class CustomerVisitOut(BaseModel):
 PROJECT_UNITS = ("支", "个", "盒", "次")
 
 
+def normalize_unit(value: str) -> str:
+    unit = (value or "个").strip() or "个"
+    if unit == "单位":
+        unit = "次"
+    if unit not in PROJECT_UNITS:
+        raise ValueError("单位须为：支 / 个 / 盒 / 次")
+    return unit
+
+
 class ProjectBase(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     description: str = ""
@@ -98,13 +107,8 @@ class ProjectBase(BaseModel):
 
     @field_validator("unit")
     @classmethod
-    def normalize_unit(cls, value: str) -> str:
-        unit = (value or "个").strip() or "个"
-        if unit == "单位":
-            unit = "次"
-        if unit not in PROJECT_UNITS:
-            raise ValueError("单位须为：支 / 个 / 盒 / 次")
-        return unit
+    def check_unit(cls, value: str) -> str:
+        return normalize_unit(value)
 
 
 class ProjectCreate(ProjectBase):
@@ -128,6 +132,18 @@ STOCK_IN = "IN"
 STOCK_OUT = "OUT"
 
 
+class StockItemIn(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+
+    @field_validator("name")
+    @classmethod
+    def trim_name(cls, value: str) -> str:
+        name = (value or "").strip()
+        if not name:
+            raise ValueError("请填写产品名")
+        return name
+
+
 class StockItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -141,7 +157,8 @@ class StockItemOut(BaseModel):
 
 
 class StockInBody(BaseModel):
-    name: str = Field(min_length=1, max_length=128)
+    item_id: Optional[int] = None
+    name: str = ""
     spec: str = Field(default="", max_length=64)
     quantity: int = Field(ge=1)
     unit: str = Field(default="个", max_length=16)
@@ -151,10 +168,7 @@ class StockInBody(BaseModel):
     @field_validator("name")
     @classmethod
     def trim_name(cls, value: str) -> str:
-        name = (value or "").strip()
-        if not name:
-            raise ValueError("请填写产品名")
-        return name
+        return (value or "").strip()
 
     @field_validator("spec")
     @classmethod
@@ -164,12 +178,13 @@ class StockInBody(BaseModel):
     @field_validator("unit")
     @classmethod
     def check_unit(cls, value: str) -> str:
-        unit = (value or "个").strip() or "个"
-        if unit == "单位":
-            unit = "次"
-        if unit not in PROJECT_UNITS:
-            raise ValueError("单位须为：支 / 个 / 盒 / 次")
-        return unit
+        return normalize_unit(value)
+
+    @model_validator(mode="after")
+    def need_product(self):
+        if not self.item_id and not self.name:
+            raise ValueError("请选择产品")
+        return self
 
 
 class StockOutBody(BaseModel):
@@ -193,6 +208,7 @@ class StockMovementOut(BaseModel):
     quantity: int
     unit_cost: Decimal
     remark: str = ""
+    inbound_no: str = ""
     moved_at: Optional[date] = None
     created_at: datetime
 

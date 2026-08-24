@@ -118,5 +118,6 @@ class StockMovement(Base):
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     remark: Mapped[str] = mapped_column(Text, default="")
     moved_at: Mapped[date] = mapped_column(Date, nullable=False, index=True, default=date.today)
+    inbound_no: Mapped[str] = mapped_column(String(32), default="", index=True)
     created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("admins.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
