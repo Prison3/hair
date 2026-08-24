@@ -42,18 +42,10 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="14dp"
-            android:text="填写套餐名称、价格与毛囊单位后保存"
-            android:textColor="@color/ink_soft"
-            android:textSize="13sp" />
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
             android:padding="16dp">
@@ -73,6 +65,22 @@
                     android:textSize="15sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.XinShang.TextInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="价格"
+                app:startIconDrawable="@drawable/ic_form_price">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/inputPrice"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/ink"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -85,13 +93,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="7dp"
                     android:layout_weight="1"
-                    android:hint="价格"
-                    app:startIconDrawable="@drawable/ic_form_price">
+                    android:hint="数量"
+                    app:startIconDrawable="@drawable/ic_form_graft">
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputPrice"
+                        android:id="@+id/inputGraft"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="numberDecimal"
+                        android:inputType="number"
                         android:textColor="@color/ink"
                         android:textSize="15sp" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -102,13 +110,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="7dp"
                     android:layout_weight="1"
-                    android:hint="毛囊单位"
-                    app:startIconDrawable="@drawable/ic_form_graft">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputGraft"
+                    android:hint="单位"
+                    app:endIconMode="dropdown_menu">
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/inputUnit"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number"
+                        android:inputType="none"
                         android:textColor="@color/ink"
                         android:textSize="15sp" />
                 </com.google.android.material.textfield.TextInputLayout>

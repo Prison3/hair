@@ -9,6 +9,13 @@ const state = {
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const PROJECT_UNITS = ["支", "个", "盒", "次"];
+
+function projectUnit(value) {
+  const raw = (value || "").trim();
+  if (!raw || raw === "单位") return "次";
+  return PROJECT_UNITS.includes(raw) ? raw : "个";
+}
 
 async function api(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
@@ -80,8 +87,10 @@ async function loadCustomers() {
       <td>${escapeHtml(c.phone)}</td>
       <td>${escapeHtml(c.gender || "-")}</td>
       <td>${escapeHtml(c.birthday || "-")}</td>
+      <td>${c.visit_count ? `${formatVisitTime(c.last_visited_at)}（${c.visit_count}）` : "尚无回访"}</td>
       <td>${escapeHtml(c.notes || "")}</td>
       <td class="row">
+        <button data-visit-customer="${c.id}">回访</button>
         <button data-edit-customer="${c.id}">编辑</button>
         <button data-del-customer="${c.id}">删除</button>
       </td>
@@ -128,7 +137,7 @@ async function loadProjects() {
       <td>${p.id}</td>
       <td>${escapeHtml(p.name)}<div class="muted">${escapeHtml(p.description || "")}</div></td>
       <td>¥${Number(p.price).toFixed(2)}</td>
-      <td>${p.graft_count}</td>
+      <td>${p.graft_count} ${escapeHtml(projectUnit(p.unit))}</td>
       <td><span class="badge ${p.active ? "" : "off"}">${p.active ? "启用" : "停用"}</span></td>
       <td class="row">
         <button data-edit-project="${p.id}">编辑</button>
@@ -144,7 +153,8 @@ function openProjectDialog(project) {
   $("#project-id").value = project?.id || "";
   $("#p-name").value = project?.name || "";
   $("#p-price").value = project?.price ?? "";
-  $("#p-graft").value = project?.graft_count ?? 0;
+  $("#p-graft").value = project?.graft_count ?? 1;
+  $("#p-unit").value = projectUnit(project?.unit || (project ? "" : "个"));
   $("#p-desc").value = project?.description || "";
   $("#p-active").checked = project?.active ?? true;
   $("#project-dialog").showModal();
@@ -157,6 +167,7 @@ async function saveProject(e) {
     name: $("#p-name").value.trim(),
     price: Number($("#p-price").value),
     graft_count: Number($("#p-graft").value || 0),
+    unit: projectUnit($("#p-unit").value),
     description: $("#p-desc").value.trim(),
     active: $("#p-active").checked,
   };
@@ -180,7 +191,7 @@ async function loadBilling() {
     .map(
       (p) => `<label class="check-item">
       <input type="checkbox" data-pid="${p.id}" data-price="${p.price}" />
-      <span>${escapeHtml(p.name)} · ¥${Number(p.price).toFixed(2)} · ${p.graft_count}单位</span>
+      <span>${escapeHtml(p.name)} · ¥${Number(p.price).toFixed(2)} · ${p.graft_count} ${escapeHtml(projectUnit(p.unit))}</span>
       <span>数量</span>
       <input type="number" min="1" value="1" data-qty="${p.id}" />
     </label>`
@@ -263,6 +274,67 @@ function formatTime(v) {
   }
 }
 
+function formatVisitTime(v) {
+  if (!v) return "";
+  return String(v).replace("T", " ").replace("Z", " ").trim().slice(0, 16);
+}
+
+function toDatetimeLocalValue(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function openVisitDialog(customer) {
+  $("#visit-dialog-title").textContent = `回访 · ${customer.name}`;
+  $("#visit-customer-id").value = customer.id;
+  $("#v-content").value = "";
+  $("#v-time").value = toDatetimeLocalValue();
+  await loadVisitList(customer.id);
+  $("#visit-dialog").showModal();
+}
+
+async function loadVisitList(customerId) {
+  const visits = await api(`/api/customers/${customerId}/visits`);
+  const box = $("#visit-list");
+  if (!visits.length) {
+    box.innerHTML = `<div class="muted">暂无回访记录</div>`;
+    return;
+  }
+  box.innerHTML = visits
+    .map(
+      (v) => `<div class="visit-item">
+        <div class="visit-head">
+          <time>${escapeHtml(formatVisitTime(v.visited_at))}</time>
+          <button type="button" data-del-visit="${v.id}">删除</button>
+        </div>
+        <p>${escapeHtml(v.content || "无内容")}</p>
+      </div>`
+    )
+    .join("");
+}
+
+async function saveVisit(e) {
+  e.preventDefault();
+  const customerId = $("#visit-customer-id").value;
+  const local = $("#v-time").value;
+  if (!customerId || !local) return;
+  try {
+    await api(`/api/customers/${customerId}/visits`, {
+      method: "POST",
+      body: JSON.stringify({
+        visited_at: local.length === 16 ? `${local}:00` : local,
+        content: $("#v-content").value.trim(),
+      }),
+    });
+    $("#v-content").value = "";
+    $("#v-time").value = toDatetimeLocalValue();
+    await loadVisitList(customerId);
+    await loadCustomers();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
 function escapeHtml(str) {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -282,6 +354,7 @@ document.addEventListener("click", async (e) => {
   if (t.id === "customer-search") loadCustomers();
   if (t.id === "customer-new") openCustomerDialog(null);
   if (t.id === "customer-cancel") $("#customer-dialog").close();
+  if (t.id === "visit-cancel") $("#visit-dialog").close();
   if (t.id === "project-new") openProjectDialog(null);
   if (t.id === "project-cancel") $("#project-dialog").close();
   if (t.id === "order-refresh") loadOrders();
@@ -289,6 +362,21 @@ document.addEventListener("click", async (e) => {
   if (t.dataset.editCustomer) {
     const c = state.customers.find((x) => String(x.id) === t.dataset.editCustomer);
     openCustomerDialog(c);
+  }
+  if (t.dataset.visitCustomer) {
+    const c = state.customers.find((x) => String(x.id) === t.dataset.visitCustomer);
+    if (c) openVisitDialog(c);
+  }
+  if (t.dataset.delVisit) {
+    const customerId = $("#visit-customer-id").value;
+    if (!confirm("确认删除这条回访？")) return;
+    try {
+      await api(`/api/customers/${customerId}/visits/${t.dataset.delVisit}`, { method: "DELETE" });
+      await loadVisitList(customerId);
+      await loadCustomers();
+    } catch (err) {
+      alert(err.message);
+    }
   }
   if (t.dataset.delCustomer) {
     if (!confirm("确认删除该客户？")) return;
@@ -385,6 +473,7 @@ async function saveAccount(e) {
 
 $("#login-form").addEventListener("submit", login);
 $("#customer-form").addEventListener("submit", saveCustomer);
+$("#visit-form").addEventListener("submit", saveVisit);
 $("#project-form").addEventListener("submit", saveProject);
 $("#billing-form").addEventListener("submit", submitBilling);
 $("#account-form").addEventListener("submit", saveAccount);

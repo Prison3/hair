@@ -112,7 +112,26 @@ button:hover { filter: brightness(0.98); }
 }
 .page-header h2 { margin: 0; }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.row.end { justify-content: flex-end; }
+.dialog-form.visit-dialog { width: min(520px, 100%); }
+.visit-list {
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow: auto;
+}
+.visit-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.visit-item .visit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.visit-item time { font-weight: 600; }
+.visit-item p { margin: 6px 0 0; color: var(--muted); font-size: 0.9rem; }
 .row.between { justify-content: space-between; }
 
 table {

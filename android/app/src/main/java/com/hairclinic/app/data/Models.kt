@@ -27,7 +27,24 @@ data class Customer(
     val birthday: String? = null,
     val notes: String = "",
     val created_at: String? = null,
+    val last_visited_at: String? = null,
+    val visit_count: Int = 0,
 )
+
+data class CustomerVisit(
+    val id: Int? = null,
+    val customer_id: Int? = null,
+    val visited_at: String,
+    val content: String = "",
+    val created_at: String? = null,
+) {
+    fun timeText(): String = formatVisitTime(visited_at)
+}
+
+fun formatVisitTime(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    return raw.replace('T', ' ').replace('Z', ' ').trim().take(16)
+}
 
 data class Project(
     val id: Int? = null,
@@ -35,9 +52,20 @@ data class Project(
     val description: String = "",
     val price: Double,
     val graft_count: Int = 0,
+    val unit: String? = "个",
     val active: Boolean = true,
     val created_at: String? = null,
-)
+) {
+    fun unitLabel(): String {
+        val raw = unit?.trim().orEmpty()
+        return when {
+            raw.isBlank() || raw == "单位" -> "次"
+            else -> raw
+        }
+    }
+
+    fun specText(): String = "$graft_count ${unitLabel()}"
+}
 
 data class OrderItemIn(val project_id: Int, val quantity: Int = 1)
 

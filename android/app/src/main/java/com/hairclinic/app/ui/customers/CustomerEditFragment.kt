@@ -1,17 +1,24 @@
 package com.hairclinic.app.ui.customers
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Customer
+import com.hairclinic.app.data.CustomerVisit
+import com.hairclinic.app.data.formatVisitTime
+import com.hairclinic.app.databinding.DialogVisitBinding
 import com.hairclinic.app.databinding.FragmentCustomerEditBinding
+import com.hairclinic.app.databinding.ItemVisitBinding
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -19,6 +26,7 @@ class CustomerEditFragment : Fragment() {
     private var _binding: FragmentCustomerEditBinding? = null
     private val binding get() = _binding!!
     private var customerId: Int = -1
+    private val visits = mutableListOf<CustomerVisit>()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentCustomerEditBinding.inflate(inflater, container, false)
@@ -29,6 +37,7 @@ class CustomerEditFragment : Fragment() {
         customerId = arguments?.getInt(ARG_ID, -1) ?: -1
         val isEdit = customerId > 0
         binding.pageTitle.text = if (isEdit) "编辑客户" else "添加客户"
+        binding.visitSection.isVisible = isEdit
 
         if (isEdit) {
             binding.inputName.setText(arguments?.getString(ARG_NAME).orEmpty())
@@ -40,12 +49,14 @@ class CustomerEditFragment : Fragment() {
             }
             val birthday = arguments?.getString(ARG_BIRTHDAY).orEmpty()
             if (birthday.isNotBlank()) binding.inputBirthday.text = birthday
+            loadVisits()
         }
 
         binding.inputBirthday.setOnClickListener { pickBirthday() }
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.cancelBtn.setOnClickListener { findNavController().navigateUp() }
         binding.saveBtn.setOnClickListener { save() }
+        binding.addVisitBtn.setOnClickListener { showVisitDialog(null) }
     }
 
     private fun pickBirthday() {
@@ -66,6 +77,116 @@ class CustomerEditFragment : Fragment() {
             cal.get(Calendar.MONTH),
             cal.get(Calendar.DAY_OF_MONTH),
         ).show()
+    }
+
+    private fun loadVisits() {
+        if (customerId <= 0) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val list = ApiClient.get(requireContext()).listVisits(customerId)
+                visits.clear()
+                visits.addAll(list)
+                renderVisits()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "回访加载失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun renderVisits() {
+        binding.visitBox.removeAllViews()
+        binding.visitEmpty.isVisible = visits.isEmpty()
+        visits.forEach { visit ->
+            val row = ItemVisitBinding.inflate(layoutInflater, binding.visitBox, false)
+            row.visitTime.text = visit.timeText()
+            row.visitContent.text = visit.content.ifBlank { "无内容" }
+            row.root.setOnClickListener { showVisitDialog(visit) }
+            row.visitDelete.setOnClickListener { confirmDeleteVisit(visit) }
+            binding.visitBox.addView(row.root)
+        }
+    }
+
+    private fun showVisitDialog(visit: CustomerVisit?) {
+        val dialogBinding = DialogVisitBinding.inflate(layoutInflater)
+        val cal = parseVisitCal(visit?.visited_at)
+        dialogBinding.visitTime.text = formatDisplayTime(cal)
+        dialogBinding.visitContent.setText(visit?.content.orEmpty())
+        dialogBinding.visitTime.setOnClickListener {
+            pickDateTime(cal) { picked ->
+                cal.timeInMillis = picked.timeInMillis
+                dialogBinding.visitTime.text = formatDisplayTime(cal)
+            }
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(if (visit == null) "添加回访" else "编辑回访")
+            .setView(dialogBinding.root)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("保存") { _, _ ->
+                val body = CustomerVisit(
+                    id = visit?.id,
+                    customer_id = customerId,
+                    visited_at = toApiDateTime(formatDisplayTime(cal)),
+                    content = dialogBinding.visitContent.text?.toString()?.trim().orEmpty(),
+                )
+                saveVisit(visit?.id, body)
+            }
+            .show()
+    }
+
+    private fun pickDateTime(initial: Calendar, onPicked: (Calendar) -> Unit) {
+        DatePickerDialog(
+            requireContext(),
+            { _, y, m, d ->
+                TimePickerDialog(
+                    requireContext(),
+                    { _, hour, minute ->
+                        val picked = Calendar.getInstance()
+                        picked.set(y, m, d, hour, minute, 0)
+                        picked.set(Calendar.MILLISECOND, 0)
+                        onPicked(picked)
+                    },
+                    initial.get(Calendar.HOUR_OF_DAY),
+                    initial.get(Calendar.MINUTE),
+                    true,
+                ).show()
+            },
+            initial.get(Calendar.YEAR),
+            initial.get(Calendar.MONTH),
+            initial.get(Calendar.DAY_OF_MONTH),
+        ).show()
+    }
+
+    private fun saveVisit(visitId: Int?, body: CustomerVisit) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val api = ApiClient.get(requireContext())
+                if (visitId != null && visitId > 0) api.updateVisit(customerId, visitId, body)
+                else api.createVisit(customerId, body)
+                Toast.makeText(requireContext(), "回访已保存", Toast.LENGTH_SHORT).show()
+                loadVisits()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "保存回访失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun confirmDeleteVisit(visit: CustomerVisit) {
+        val id = visit.id ?: return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("删除回访")
+            .setMessage("确定删除 ${visit.timeText()} 这条回访？")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("删除") { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    try {
+                        ApiClient.get(requireContext()).deleteVisit(customerId, id)
+                        loadVisits()
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), e.message ?: "删除失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .show()
     }
 
     private fun save() {
@@ -93,9 +214,16 @@ class CustomerEditFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val api = ApiClient.get(requireContext())
-                if (customerId > 0) api.updateCustomer(customerId, body) else api.createCustomer(body)
+                val saved = if (customerId > 0) api.updateCustomer(customerId, body) else api.createCustomer(body)
+                customerId = saved.id ?: customerId
                 Toast.makeText(requireContext(), "已保存", Toast.LENGTH_SHORT).show()
-                findNavController().navigateUp()
+                if (binding.visitSection.isVisible) {
+                    findNavController().navigateUp()
+                } else {
+                    binding.pageTitle.text = "编辑客户"
+                    binding.visitSection.isVisible = true
+                    loadVisits()
+                }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "保存失败", Toast.LENGTH_SHORT).show()
             }
@@ -122,6 +250,32 @@ class CustomerEditFragment : Fragment() {
             putString(ARG_GENDER, customer?.gender.orEmpty())
             putString(ARG_BIRTHDAY, customer?.birthday.orEmpty())
             putString(ARG_NOTES, customer?.notes.orEmpty())
+        }
+
+        fun parseVisitCal(raw: String?): Calendar {
+            val cal = Calendar.getInstance()
+            val text = formatVisitTime(raw)
+            val match = Regex("""(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})""").find(text)
+            if (match != null) {
+                val (y, m, d, h, min) = match.destructured
+                cal.set(y.toInt(), m.toInt() - 1, d.toInt(), h.toInt(), min.toInt(), 0)
+                cal.set(Calendar.MILLISECOND, 0)
+            }
+            return cal
+        }
+
+        fun formatDisplayTime(cal: Calendar): String =
+            "%04d-%02d-%02d %02d:%02d".format(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH),
+                cal.get(Calendar.HOUR_OF_DAY),
+                cal.get(Calendar.MINUTE),
+            )
+
+        fun toApiDateTime(display: String): String {
+            val t = display.trim().replace(' ', 'T')
+            return if (t.length == 16) "$t:00" else t
         }
     }
 }

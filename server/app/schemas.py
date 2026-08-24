@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TokenOut(BaseModel):
@@ -56,6 +56,36 @@ class CustomerOut(CustomerBase):
 
     id: int
     created_at: datetime
+    last_visited_at: Optional[datetime] = None
+    visit_count: int = 0
+
+
+class CustomerVisitIn(BaseModel):
+    visited_at: datetime
+    content: str = ""
+
+    @field_validator("visited_at")
+    @classmethod
+    def to_minute(cls, value: datetime) -> datetime:
+        return value.replace(second=0, microsecond=0)
+
+    @field_validator("content")
+    @classmethod
+    def trim_content(cls, value: str) -> str:
+        return (value or "").strip()
+
+
+class CustomerVisitOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    customer_id: int
+    visited_at: datetime
+    content: str = ""
+    created_at: datetime
+
+
+PROJECT_UNITS = ("支", "个", "盒", "次")
 
 
 class ProjectBase(BaseModel):
@@ -63,7 +93,18 @@ class ProjectBase(BaseModel):
     description: str = ""
     price: Decimal = Field(ge=0)
     graft_count: int = Field(default=0, ge=0)
+    unit: str = Field(default="个", max_length=16)
     active: bool = True
+
+    @field_validator("unit")
+    @classmethod
+    def normalize_unit(cls, value: str) -> str:
+        unit = (value or "个").strip() or "个"
+        if unit == "单位":
+            unit = "次"
+        if unit not in PROJECT_UNITS:
+            raise ValueError("单位须为：支 / 个 / 盒 / 次")
+        return unit
 
 
 class ProjectCreate(ProjectBase):

@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Customer
+import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.databinding.ItemSimpleBinding
 import kotlinx.coroutines.launch
@@ -86,7 +87,7 @@ class CustomersFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "客户"
-        binding.pageSubtitle.text = "录入与查询客户资料"
+        binding.pageSubtitle.text = "资料、查询与回访"
         binding.addBtn.text = "添加客户"
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
@@ -118,9 +119,13 @@ class CustomersFragment : Fragment() {
                 val q = binding.searchInput.text?.toString()?.trim().orEmpty().ifBlank { null }
                 val list = ApiClient.get(requireContext()).listCustomers(q)
                 adapter.submit(list.map { c ->
+                    val visitLine = when {
+                        c.visit_count > 0 -> "回访 ${formatVisitTime(c.last_visited_at)} · ${c.visit_count} 次"
+                        else -> "尚无回访"
+                    }
                     Item(
                         title = c.name,
-                        subtitle = "${c.phone} · 生日 ${c.birthday ?: "-"}\n${c.notes.ifBlank { "无备注" }}",
+                        subtitle = "${c.phone} · 生日 ${c.birthday ?: "-"}\n$visitLine",
                         badge = c.gender.ifBlank { "未知" },
                         badgeTone = if (c.gender == "女") BadgeTone.GOLD else BadgeTone.SUCCESS,
                         onClick = { openEditor(c) },

@@ -31,6 +31,9 @@ class Customer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="customer")
+    visits: Mapped[List["CustomerVisit"]] = relationship(
+        "CustomerVisit", back_populates="customer", cascade="all, delete-orphan"
+    )
 
 
 class Project(Base):
@@ -41,6 +44,7 @@ class Project(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     graft_count: Mapped[int] = mapped_column(Integer, default=0)
+    unit: Mapped[str] = mapped_column(String(16), default="个")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -74,3 +78,16 @@ class OrderItem(Base):
     quantity: Mapped[int] = mapped_column(Integer, default=1)
 
     order: Mapped["Order"] = relationship("Order", back_populates="items")
+
+
+class CustomerVisit(Base):
+    __tablename__ = "customer_visits"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
+    visited_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    content: Mapped[str] = mapped_column(Text, default="")
+    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("admins.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    customer: Mapped["Customer"] = relationship("Customer", back_populates="visits")

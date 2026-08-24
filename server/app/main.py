@@ -16,11 +16,18 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
 def migrate_schema() -> None:
-    """SQLite 轻量迁移：age -> birthday。"""
+    """SQLite 轻量迁移：birthday、项目单位。"""
     with engine.begin() as conn:
         cols = [row[1] for row in conn.execute(text("PRAGMA table_info(customers)")).fetchall()]
         if cols and "birthday" not in cols:
             conn.execute(text("ALTER TABLE customers ADD COLUMN birthday DATE"))
+        pcols = [row[1] for row in conn.execute(text("PRAGMA table_info(projects)")).fetchall()]
+        if pcols and "unit" not in pcols:
+            conn.execute(text("ALTER TABLE projects ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
+        if pcols:
+            conn.execute(
+                text("UPDATE projects SET unit = '次' WHERE unit IS NULL OR unit = '' OR unit = '单位'")
+            )
 
 
 def seed_data() -> None:
@@ -41,6 +48,7 @@ def seed_data() -> None:
                         description="适合轻度发际线后退",
                         price=12800,
                         graft_count=1500,
+                        unit="次",
                         active=True,
                     ),
                     Project(
@@ -48,6 +56,7 @@ def seed_data() -> None:
                         description="头顶稀疏区域加密",
                         price=16800,
                         graft_count=2000,
+                        unit="次",
                         active=True,
                     ),
                     Project(
@@ -55,6 +64,7 @@ def seed_data() -> None:
                         description="大面积脱发综合方案",
                         price=29800,
                         graft_count=4000,
+                        unit="次",
                         active=True,
                     ),
                 ]

@@ -43,7 +43,7 @@
         </header>
         <table>
           <thead>
-            <tr><th>ID</th><th>姓名</th><th>手机</th><th>性别</th><th>生日</th><th>备注</th><th>操作</th></tr>
+            <tr><th>ID</th><th>姓名</th><th>手机</th><th>性别</th><th>生日</th><th>最近回访</th><th>备注</th><th>操作</th></tr>
           </thead>
           <tbody id="customer-tbody"></tbody>
         </table>
@@ -56,7 +56,7 @@
         </header>
         <table>
           <thead>
-            <tr><th>ID</th><th>名称</th><th>价格</th><th>毛囊单位</th><th>状态</th><th>操作</th></tr>
+            <tr><th>ID</th><th>名称</th><th>价格</th><th>规格</th><th>状态</th><th>操作</th></tr>
           </thead>
           <tbody id="project-tbody"></tbody>
         </table>
@@ -127,13 +127,37 @@
     </form>
   </dialog>
 
+  <dialog id="visit-dialog">
+    <form id="visit-form" class="dialog-form visit-dialog">
+      <h3 id="visit-dialog-title">回访记录</h3>
+      <input type="hidden" id="visit-customer-id" />
+      <div id="visit-list" class="visit-list"></div>
+      <label>回访时间<input id="v-time" type="datetime-local" step="60" required /></label>
+      <label>回访内容<textarea id="v-content" rows="3" placeholder="可选"></textarea></label>
+      <div class="row end">
+        <button type="button" id="visit-cancel">关闭</button>
+        <button type="submit" class="primary">添加回访</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="project-dialog">
     <form id="project-form" method="dialog" class="dialog-form">
       <h3 id="project-dialog-title">新建项目</h3>
       <input type="hidden" id="project-id" />
       <label>名称<input id="p-name" required /></label>
       <label>价格<input id="p-price" type="number" min="0" step="0.01" required /></label>
-      <label>毛囊单位<input id="p-graft" type="number" min="0" value="0" /></label>
+      <div class="row" style="align-items:stretch">
+        <label style="flex:1">数量<input id="p-graft" type="number" min="0" value="1" /></label>
+        <label style="flex:1">单位
+          <select id="p-unit">
+            <option value="支">支</option>
+            <option value="个" selected>个</option>
+            <option value="盒">盒</option>
+            <option value="次">次</option>
+          </select>
+        </label>
+      </div>
       <label>描述<textarea id="p-desc" rows="3"></textarea></label>
       <label class="row"><input id="p-active" type="checkbox" checked /> 启用</label>
       <div class="row end">

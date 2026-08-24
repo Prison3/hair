@@ -57,7 +57,7 @@ class ProjectsFragment : Fragment() {
                     val price = ProjectEditFragment.formatPrice(p.price)
                     Item(
                         title = p.name,
-                        subtitle = "¥$price · ${p.graft_count} 单位\n${p.description.ifBlank { "无描述" }}",
+                        subtitle = "¥$price · ${p.specText()}\n${p.description.ifBlank { "无描述" }}",
                         badge = if (p.active) "启用" else "停用",
                         badgeTone = if (p.active) BadgeTone.SUCCESS else BadgeTone.MUTED,
                         onClick = { openEditor(p) },

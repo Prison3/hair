@@ -57,7 +57,7 @@ class BillingFragment : Fragment() {
                 projects.forEach { p ->
                     val row = ItemBillingProjectBinding.inflate(layoutInflater, binding.projectBox, false)
                     row.projectCheck.text = p.name
-                    row.projectMeta.text = "¥${"%.2f".format(p.price)} · ${p.graft_count} 单位"
+                    row.projectMeta.text = "¥${"%.2f".format(p.price)} · ${p.specText()}"
                     row.projectCheck.setOnCheckedChangeListener { _, _ -> updateTotal() }
                     row.projectQty.doAfterTextChanged { updateTotal() }
                     binding.projectBox.addView(row.root)

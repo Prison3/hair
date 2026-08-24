@@ -31,6 +31,22 @@ interface ApiService {
     @DELETE("api/customers/{id}")
     suspend fun deleteCustomer(@Path("id") id: Int)
 
+    @GET("api/customers/{id}/visits")
+    suspend fun listVisits(@Path("id") id: Int): List<CustomerVisit>
+
+    @POST("api/customers/{id}/visits")
+    suspend fun createVisit(@Path("id") id: Int, @Body body: CustomerVisit): CustomerVisit
+
+    @PUT("api/customers/{id}/visits/{visitId}")
+    suspend fun updateVisit(
+        @Path("id") id: Int,
+        @Path("visitId") visitId: Int,
+        @Body body: CustomerVisit,
+    ): CustomerVisit
+
+    @DELETE("api/customers/{id}/visits/{visitId}")
+    suspend fun deleteVisit(@Path("id") id: Int, @Path("visitId") visitId: Int)
+
     @GET("api/projects")
     suspend fun listProjects(@Query("active_only") activeOnly: Boolean = false): List<Project>
 
