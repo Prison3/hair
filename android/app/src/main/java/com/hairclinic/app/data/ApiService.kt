@@ -62,6 +62,9 @@ interface ApiService {
     @DELETE("api/customers/{id}/visits/{visitId}")
     suspend fun deleteVisit(@Path("id") id: Int, @Path("visitId") visitId: Int)
 
+    @GET("api/customers/{id}/orders")
+    suspend fun listCustomerOrders(@Path("id") id: Int): List<Order>
+
     @GET("api/projects")
     suspend fun listProjects(@Query("active_only") activeOnly: Boolean = false): List<Project>
 
@@ -117,6 +120,12 @@ interface ApiService {
 
     @PATCH("api/orders/{id}/status")
     suspend fun updateOrderStatus(@Path("id") id: Int, @Body body: OrderStatusUpdate): Order
+
+    @GET("api/revenue/summary")
+    suspend fun revenueSummary(
+        @Query("year") year: Int? = null,
+        @Query("month") month: Int? = null,
+    ): RevenueSummary
 
     @GET("api/app/info")
     suspend fun appInfo(): AppReleaseInfo

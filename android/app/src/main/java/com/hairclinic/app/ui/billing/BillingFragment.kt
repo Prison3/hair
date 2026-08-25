@@ -19,6 +19,7 @@ import com.hairclinic.app.data.OrderItemIn
 import com.hairclinic.app.data.Project
 import com.hairclinic.app.databinding.FragmentBillingBinding
 import com.hairclinic.app.databinding.ItemBillingProjectBinding
+import com.hairclinic.app.ui.projects.ProjectEditFragment
 import kotlinx.coroutines.launch
 
 class BillingFragment : Fragment() {
@@ -63,26 +64,36 @@ class BillingFragment : Fragment() {
                     } else {
                         "¥${"%.2f".format(p.price)} · $meds"
                     }
-                    row.projectCheck.setOnCheckedChangeListener { _, _ -> updateTotal() }
-                    row.projectQty.doAfterTextChanged { updateTotal() }
+                    row.projectCheck.setOnCheckedChangeListener { _, _ -> updateTotal(syncDeal = true) }
+                    row.projectQty.doAfterTextChanged { updateTotal(syncDeal = true) }
                     binding.projectBox.addView(row.root)
                     checks += row.projectCheck to row.projectQty
                 }
-                updateTotal()
+                updateTotal(syncDeal = true)
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun updateTotal() {
+    private fun catalogTotal(): Double {
         var total = 0.0
         checks.forEachIndexed { index, (cb, qty) ->
             if (cb.isChecked) {
                 total += projects[index].price * (qty.text.toString().toIntOrNull() ?: 1)
             }
         }
-        binding.totalText.text = "¥${"%.2f".format(total)}"
+        return total
+    }
+
+    private fun updateTotal(syncDeal: Boolean) {
+        val total = catalogTotal()
+        binding.catalogTotalText.text = "参考合计 ¥${"%.2f".format(total)}"
+        if (syncDeal) {
+            binding.dealPrice.setText(
+                if (total > 0) ProjectEditFragment.formatPrice(total) else "",
+            )
+        }
     }
 
     private fun submit() {
@@ -100,6 +111,11 @@ class BillingFragment : Fragment() {
             Toast.makeText(requireContext(), "请选择项目", Toast.LENGTH_SHORT).show()
             return
         }
+        val dealPrice = binding.dealPrice.text?.toString()?.toDoubleOrNull()
+        if (dealPrice == null || dealPrice < 0) {
+            Toast.makeText(requireContext(), "请填写成交价格", Toast.LENGTH_SHORT).show()
+            return
+        }
         val customer = customers[binding.customerSpinner.selectedItemPosition]
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -107,6 +123,7 @@ class BillingFragment : Fragment() {
                     OrderCreate(
                         customer_id = customer.id!!,
                         items = items,
+                        deal_price = dealPrice,
                         remark = binding.remark.text?.toString()?.trim().orEmpty(),
                     )
                 )
@@ -116,9 +133,13 @@ class BillingFragment : Fragment() {
                     qty.setText("1")
                 }
                 binding.remark.setText("")
-                updateTotal()
+                updateTotal(syncDeal = true)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), e.message ?: "开单失败", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    ProjectEditFragment.apiError(e, "开单失败"),
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
         }
     }

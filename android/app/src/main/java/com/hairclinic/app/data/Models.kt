@@ -58,6 +58,9 @@ data class Customer(
     val phone: String,
     val gender: String = "",
     val birthday: String? = null,
+    val wechat: String = "",
+    val address: String = "",
+    val intention: String = "",
     val notes: String = "",
     val created_at: String? = null,
     val last_visited_at: String? = null,
@@ -183,6 +186,7 @@ data class OrderItemIn(val project_id: Int, val quantity: Int = 1)
 data class OrderCreate(
     val customer_id: Int,
     val items: List<OrderItemIn>,
+    val deal_price: Double,
     val remark: String = "",
 )
 
@@ -208,6 +212,27 @@ data class Order(
 )
 
 data class OrderStatusUpdate(val status: String)
+
+data class RevenueDay(
+    val date: String,
+    val day: Int,
+    val revenue: Double,
+    val order_count: Int,
+    val cost: Double,
+    val inbound_count: Int,
+    val profit: Double,
+)
+
+data class RevenueSummary(
+    val year: Int,
+    val month: Int,
+    val revenue: Double,
+    val order_count: Int,
+    val cost: Double,
+    val inbound_count: Int,
+    val profit: Double,
+    val days: List<RevenueDay> = emptyList(),
+)
 
 data class AppReleaseInfo(
     val version_code: Int = 0,

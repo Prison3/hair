@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..auth import get_current_admin
 from ..database import get_db
-from ..models import Admin, Customer, Order, OrderItem, Project
+from ..models import Admin, Customer, Order, OrderItem, Project, StockItem
 from ..schemas import OrderCreate, OrderOut, OrderStatusUpdate
+from ..stock import stock_out
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
@@ -34,6 +36,41 @@ def serialize_order(order: Order) -> OrderOut:
         created_at=order.created_at,
         items=order.items,
     )
+
+
+def _collect_stock_needs(db: Session, body_items: List) -> Dict[int, int]:
+    """按项目关联产品汇总出库数量：产品用量 × 项目数量。"""
+    needs: Dict[int, int] = defaultdict(int)
+    for item in body_items:
+        project = (
+            db.query(Project)
+            .options(selectinload(Project.medicines))
+            .filter(Project.id == item.project_id)
+            .first()
+        )
+        if not project or not project.active:
+            raise HTTPException(status_code=400, detail=f"项目不可用: {item.project_id}")
+        for med in project.medicines or []:
+            needs[med.item_id] += int(med.quantity) * int(item.quantity)
+    return dict(needs)
+
+
+def _ensure_stock(db: Session, needs: Dict[int, int]) -> Dict[int, StockItem]:
+    stocks: Dict[int, StockItem] = {}
+    for item_id, qty in needs.items():
+        if qty <= 0:
+            continue
+        stock = db.get(StockItem, item_id)
+        if not stock:
+            raise HTTPException(status_code=400, detail=f"项目关联产品不存在: {item_id}")
+        on_hand = int(stock.stock_qty or 0)
+        if on_hand < qty:
+            raise HTTPException(
+                status_code=400,
+                detail=f"库存不足：{stock.name} 需要 {qty}，仅剩 {on_hand}",
+            )
+        stocks[item_id] = stock
+    return stocks
 
 
 @router.get("/orders", response_model=List[OrderOut])
@@ -101,15 +138,15 @@ def create_order(
     if not customer:
         raise HTTPException(status_code=404, detail="客户不存在")
 
-    items = []  # type: List[OrderItem]
-    total = Decimal("0.00")
+    needs = _collect_stock_needs(db, body.items)
+    stocks = _ensure_stock(db, needs)
+
+    items: List[OrderItem] = []
     order_no = _order_no()
     for item in body.items:
         project = db.get(Project, item.project_id)
         if not project or not project.active:
             raise HTTPException(status_code=400, detail=f"项目不可用: {item.project_id}")
-        line_total = Decimal(project.price) * item.quantity
-        total += line_total
         items.append(
             OrderItem(
                 project_id=project.id,
@@ -119,16 +156,30 @@ def create_order(
             )
         )
 
+    deal_price = Decimal(body.deal_price).quantize(Decimal("0.01"))
     order = Order(
         order_no=order_no,
         customer_id=customer.id,
-        total_amount=total,
+        total_amount=deal_price,
         status="PAID",
         remark=body.remark or "",
         created_by=admin.id,
         items=items,
     )
     db.add(order)
+    db.flush()
+
+    for item_id, qty in needs.items():
+        if qty <= 0:
+            continue
+        stock_out(
+            db,
+            stocks[item_id],
+            qty,
+            remark=f"订单 {order_no}",
+            admin_id=admin.id,
+        )
+
     db.commit()
     order = (
         db.query(Order)

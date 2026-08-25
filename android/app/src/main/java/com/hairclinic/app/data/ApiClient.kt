@@ -109,7 +109,13 @@ object Session {
 
     fun allowedNavIds(context: Context): Set<Int> =
         if (isAdmin(context)) {
-            setOf(R.id.projectsFragment, R.id.inventoryFragment, R.id.staffFragment, R.id.meFragment)
+            setOf(
+                R.id.projectsFragment,
+                R.id.inventoryFragment,
+                R.id.revenueFragment,
+                R.id.staffFragment,
+                R.id.meFragment,
+            )
         } else {
             setOf(R.id.customersFragment, R.id.billingFragment, R.id.ordersFragment, R.id.meFragment)
         }

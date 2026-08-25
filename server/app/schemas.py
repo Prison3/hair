@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -105,7 +106,31 @@ class CustomerBase(BaseModel):
     phone: str = Field(min_length=1, max_length=32)
     gender: str = ""
     birthday: Optional[date] = None
+    wechat: str = Field(default="", max_length=64)
+    address: str = Field(default="", max_length=255)
+    intention: str = Field(default="", max_length=16)
     notes: str = ""
+
+    @field_validator("phone")
+    @classmethod
+    def check_phone(cls, value: str) -> str:
+        phone = (value or "").strip().replace(" ", "").replace("-", "")
+        if not re.fullmatch(r"1[3-9]\d{9}", phone):
+            raise ValueError("请输入正确的11位手机号")
+        return phone
+
+    @field_validator("intention")
+    @classmethod
+    def check_intention(cls, value: str) -> str:
+        intention = (value or "").strip()
+        if intention and intention not in ("高", "中", "低"):
+            raise ValueError("意向度可选：高 / 中 / 低")
+        return intention
+
+    @field_validator("wechat", "address", "notes", mode="before")
+    @classmethod
+    def trim_optional(cls, value) -> str:
+        return (value or "").strip() if value is not None else ""
 
 
 class CustomerCreate(CustomerBase):
@@ -332,6 +357,7 @@ class OrderItemIn(BaseModel):
 class OrderCreate(BaseModel):
     customer_id: int
     items: List[OrderItemIn] = Field(min_length=1)
+    deal_price: Decimal = Field(ge=0, description="最终成交价格")
     remark: str = ""
 
 
@@ -362,6 +388,27 @@ class OrderOut(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     status: str
+
+
+class RevenueDayOut(BaseModel):
+    date: str  # YYYY-MM-DD
+    day: int
+    revenue: Decimal
+    order_count: int
+    cost: Decimal
+    inbound_count: int
+    profit: Decimal
+
+
+class RevenueSummaryOut(BaseModel):
+    year: int
+    month: int
+    revenue: Decimal
+    order_count: int
+    cost: Decimal
+    inbound_count: int
+    profit: Decimal
+    days: List[RevenueDayOut] = Field(default_factory=list)
 
 
 class AppReleaseOut(BaseModel):

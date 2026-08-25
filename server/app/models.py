@@ -28,6 +28,9 @@ class Customer(Base):
     phone: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     gender: Mapped[str] = mapped_column(String(16), default="")
     birthday: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    wechat: Mapped[str] = mapped_column(String(64), default="")
+    address: Mapped[str] = mapped_column(String(255), default="")
+    intention: Mapped[str] = mapped_column(String(16), default="")
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

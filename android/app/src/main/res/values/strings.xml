@@ -6,6 +6,7 @@
     <string name="nav_inventory">库存</string>
     <string name="nav_billing">开单</string>
     <string name="nav_orders">订单</string>
+    <string name="nav_revenue">营收</string>
     <string name="nav_staff">用户</string>
     <string name="nav_me">我的</string>
 </resources>

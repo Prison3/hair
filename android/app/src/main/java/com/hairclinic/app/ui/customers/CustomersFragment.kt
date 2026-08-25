@@ -135,11 +135,23 @@ class CustomersFragment : Fragment() {
                         c.visit_count > 0 -> "回访 ${formatVisitTime(c.last_visited_at)} · ${c.visit_count} 次"
                         else -> "尚无回访"
                     }
+                    val extras = buildList {
+                        add(c.phone)
+                        add("生日 ${c.birthday ?: "-"}")
+                        if (c.intention.isNotBlank()) add("意向 ${c.intention}")
+                        if (c.wechat.isNotBlank()) add("微信 ${c.wechat}")
+                        if (c.address.isNotBlank()) add(c.address)
+                    }.joinToString(" · ")
                     Item(
                         title = c.name,
-                        subtitle = "${c.phone} · 生日 ${c.birthday ?: "-"}\n$visitLine",
-                        badge = c.gender.ifBlank { "未知" },
-                        badgeTone = if (c.gender == "女") BadgeTone.GOLD else BadgeTone.SUCCESS,
+                        subtitle = "$extras\n$visitLine",
+                        badge = c.intention.ifBlank { c.gender.ifBlank { "未知" } },
+                        badgeTone = when (c.intention) {
+                            "高" -> BadgeTone.SUCCESS
+                            "中" -> BadgeTone.GOLD
+                            "低" -> BadgeTone.WARN
+                            else -> if (c.gender == "女") BadgeTone.GOLD else BadgeTone.SUCCESS
+                        },
                         onClick = { openEditor(c) },
                     )
                 })

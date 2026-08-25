@@ -44,7 +44,7 @@
         </header>
         <table>
           <thead>
-            <tr><th>ID</th><th>姓名</th><th>手机</th><th>性别</th><th>生日</th><th>最近回访</th><th>备注</th><th>操作</th></tr>
+            <tr><th>ID</th><th>姓名</th><th>手机</th><th>微信</th><th>意向度</th><th>性别</th><th>生日</th><th>地址</th><th>最近回访</th><th>备注</th><th>操作</th></tr>
           </thead>
           <tbody id="customer-tbody"></tbody>
         </table>
@@ -95,7 +95,12 @@
             <div id="billing-projects" class="check-list"></div>
           </div>
           <div class="full row between">
-            <strong id="billing-total">合计：¥0</strong>
+            <strong id="billing-total">参考合计：¥0</strong>
+          </div>
+          <label>成交价格
+            <input id="billing-deal-price" type="number" min="0" step="0.01" required />
+          </label>
+          <div class="full row end">
             <button type="submit" class="primary">生成订单</button>
           </div>
         </form>
@@ -138,6 +143,16 @@
         </div>
       </label>
       <label>生日<input id="c-birthday" type="date" /></label>
+      <label>意向度
+        <select id="c-intention">
+          <option value="">未选择</option>
+          <option value="高">高</option>
+          <option value="中">中</option>
+          <option value="低">低</option>
+        </select>
+      </label>
+      <label>微信号<input id="c-wechat" placeholder="可选" /></label>
+      <label>地址<input id="c-address" placeholder="可选" /></label>
       <label>备注<textarea id="c-notes" rows="3"></textarea></label>
       <div class="row end">
         <button type="button" id="customer-cancel">取消</button>

@@ -87,8 +87,11 @@ async function loadCustomers() {
       <td>${c.id}</td>
       <td>${escapeHtml(c.name)}</td>
       <td>${escapeHtml(c.phone)}</td>
+      <td>${escapeHtml(c.wechat || "-")}</td>
+      <td>${escapeHtml(c.intention || "-")}</td>
       <td>${escapeHtml(c.gender || "-")}</td>
       <td>${escapeHtml(c.birthday || "-")}</td>
+      <td>${escapeHtml(c.address || "-")}</td>
       <td>${c.visit_count ? `${formatVisitTime(c.last_visited_at)}（${c.visit_count}）` : "尚无回访"}</td>
       <td>${escapeHtml(c.notes || "")}</td>
       <td class="row">
@@ -110,6 +113,9 @@ function openCustomerDialog(customer) {
     el.checked = el.value === (customer?.gender || "");
   });
   $("#c-birthday").value = customer?.birthday || "";
+  $("#c-intention").value = customer?.intention || "";
+  $("#c-wechat").value = customer?.wechat || "";
+  $("#c-address").value = customer?.address || "";
   $("#c-notes").value = customer?.notes || "";
   $("#customer-dialog").showModal();
 }
@@ -118,11 +124,19 @@ async function saveCustomer(e) {
   e.preventDefault();
   const id = $("#customer-id").value;
   const genderEl = $$('input[name="c-gender"]').find((el) => el.checked);
+  const phone = $("#c-phone").value.trim().replace(/[\s-]/g, "");
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
+    alert("请输入正确的11位手机号");
+    return;
+  }
   const body = {
     name: $("#c-name").value.trim(),
-    phone: $("#c-phone").value.trim(),
+    phone,
     gender: genderEl ? genderEl.value : "",
     birthday: $("#c-birthday").value || null,
+    intention: $("#c-intention").value.trim(),
+    wechat: $("#c-wechat").value.trim(),
+    address: $("#c-address").value.trim(),
     notes: $("#c-notes").value.trim(),
   };
   if (id) await api(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(body) });
@@ -424,7 +438,8 @@ function updateBillingTotal() {
     const qty = Number(row.querySelector('input[type="number"]').value || 1);
     if (cb.checked) total += Number(cb.dataset.price) * qty;
   });
-  $("#billing-total").textContent = `合计：¥${total.toFixed(2)}`;
+  $("#billing-total").textContent = `参考合计：¥${total.toFixed(2)}`;
+  $("#billing-deal-price").value = total > 0 ? total.toFixed(2) : "";
 }
 
 async function submitBilling(e) {
@@ -439,16 +454,26 @@ async function submitBilling(e) {
     alert("请至少选择一个项目");
     return;
   }
-  const order = await api("/api/orders", {
-    method: "POST",
-    body: JSON.stringify({
-      customer_id: Number($("#billing-customer").value),
-      items,
-      remark: $("#billing-remark").value.trim(),
-    }),
-  });
-  alert(`订单已生成：${order.order_no}`);
-  switchPage("orders");
+  const dealPrice = Number($("#billing-deal-price").value);
+  if (Number.isNaN(dealPrice) || dealPrice < 0) {
+    alert("请填写成交价格");
+    return;
+  }
+  try {
+    const order = await api("/api/orders", {
+      method: "POST",
+      body: JSON.stringify({
+        customer_id: Number($("#billing-customer").value),
+        items,
+        deal_price: dealPrice,
+        remark: $("#billing-remark").value.trim(),
+      }),
+    });
+    alert(`订单已生成：${order.order_no}`);
+    switchPage("orders");
+  } catch (err) {
+    alert(err.message);
+  }
 }
 
 async function loadOrders() {

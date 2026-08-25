@@ -11,7 +11,7 @@ from .auth import ROLE_ADMIN, ROLE_MANAGER, hash_password
 from .database import Base, SessionLocal, engine
 from .models import Admin, Project
 from .stock import backfill_inbound_nos
-from .routers import app_release, auth, customers, inventory, orders, projects
+from .routers import app_release, auth, customers, inventory, orders, projects, revenue
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -22,6 +22,12 @@ def migrate_schema() -> None:
         cols = [row[1] for row in conn.execute(text("PRAGMA table_info(customers)")).fetchall()]
         if cols and "birthday" not in cols:
             conn.execute(text("ALTER TABLE customers ADD COLUMN birthday DATE"))
+        if cols and "wechat" not in cols:
+            conn.execute(text("ALTER TABLE customers ADD COLUMN wechat VARCHAR(64) DEFAULT ''"))
+        if cols and "address" not in cols:
+            conn.execute(text("ALTER TABLE customers ADD COLUMN address VARCHAR(255) DEFAULT ''"))
+        if cols and "intention" not in cols:
+            conn.execute(text("ALTER TABLE customers ADD COLUMN intention VARCHAR(16) DEFAULT ''"))
         pcols = [row[1] for row in conn.execute(text("PRAGMA table_info(projects)")).fetchall()]
         if pcols and "unit" not in pcols:
             conn.execute(text("ALTER TABLE projects ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
@@ -138,6 +144,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(inventory.router)
     app.include_router(orders.router)
+    app.include_router(revenue.router)
     app.include_router(app_release.router)
 
     if STATIC_DIR.exists():

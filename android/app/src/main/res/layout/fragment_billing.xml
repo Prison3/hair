@@ -86,34 +86,30 @@
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/catalogTotalText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@drawable/bg_total"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="14dp">
+                android:layout_marginTop="14dp"
+                android:text="参考合计 ¥0.00"
+                android:textColor="@color/ink_soft"
+                android:textSize="13sp" />
 
-                <TextView
-                    android:layout_width="0dp"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.XinShang.TextInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="成交价格"
+                app:startIconDrawable="@drawable/ic_form_price">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/dealPrice"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="合计"
-                    android:textColor="@color/paper2"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/totalText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="serif"
-                    android:text="¥0.00"
-                    android:textColor="@color/paper2"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/ink"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/submitBtn"

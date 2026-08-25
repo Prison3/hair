@@ -15,6 +15,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Customer
 import com.hairclinic.app.data.CustomerVisit
+import com.hairclinic.app.data.Order
 import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.DialogVisitBinding
 import com.hairclinic.app.databinding.FragmentCustomerEditBinding
@@ -27,6 +28,7 @@ class CustomerEditFragment : Fragment() {
     private val binding get() = _binding!!
     private var customerId: Int = -1
     private val visits = mutableListOf<CustomerVisit>()
+    private val orders = mutableListOf<Order>()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentCustomerEditBinding.inflate(inflater, container, false)
@@ -38,18 +40,27 @@ class CustomerEditFragment : Fragment() {
         val isEdit = customerId > 0
         binding.pageTitle.text = if (isEdit) "编辑客户" else "添加客户"
         binding.visitSection.isVisible = isEdit
+        binding.orderSection.isVisible = isEdit
 
         if (isEdit) {
             binding.inputName.setText(arguments?.getString(ARG_NAME).orEmpty())
             binding.inputPhone.setText(arguments?.getString(ARG_PHONE).orEmpty())
+            binding.inputWechat.setText(arguments?.getString(ARG_WECHAT).orEmpty())
+            binding.inputAddress.setText(arguments?.getString(ARG_ADDRESS).orEmpty())
             binding.inputNotes.setText(arguments?.getString(ARG_NOTES).orEmpty())
             when (arguments?.getString(ARG_GENDER)) {
                 "男" -> binding.genderMale.isChecked = true
                 "女" -> binding.genderFemale.isChecked = true
             }
+            when (arguments?.getString(ARG_INTENTION)) {
+                "高" -> binding.intentionHigh.isChecked = true
+                "中" -> binding.intentionMid.isChecked = true
+                "低" -> binding.intentionLow.isChecked = true
+            }
             val birthday = arguments?.getString(ARG_BIRTHDAY).orEmpty()
             if (birthday.isNotBlank()) binding.inputBirthday.text = birthday
             loadVisits()
+            loadOrders()
         }
 
         binding.inputBirthday.setOnClickListener { pickBirthday() }
@@ -91,6 +102,50 @@ class CustomerEditFragment : Fragment() {
                 Toast.makeText(requireContext(), e.message ?: "回访加载失败", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun loadOrders() {
+        if (customerId <= 0) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val list = ApiClient.get(requireContext()).listCustomerOrders(customerId)
+                orders.clear()
+                orders.addAll(list)
+                renderOrders()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "订单加载失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun renderOrders() {
+        binding.orderBox.removeAllViews()
+        binding.orderEmpty.isVisible = orders.isEmpty()
+        orders.forEach { order ->
+            val row = ItemVisitBinding.inflate(layoutInflater, binding.orderBox, false)
+            val time = formatVisitTime(order.created_at)
+            row.visitTime.text = "${order.order_no} · ${orderStatusLabel(order.status)}"
+            val detail = order.items.joinToString(" · ") { "${it.project_name}×${it.quantity}" }
+            row.visitContent.text = buildString {
+                append("¥${"%.2f".format(order.total_amount)}")
+                if (time.isNotBlank()) append(" · $time")
+                append("\n")
+                append(detail.ifBlank { "无项目" })
+                if (order.remark.isNotBlank()) append("\n备注 ${order.remark}")
+            }
+            row.visitDelete.isVisible = false
+            row.root.isClickable = false
+            row.root.isFocusable = false
+            binding.orderBox.addView(row.root)
+        }
+    }
+
+    private fun orderStatusLabel(status: String): String = when (status) {
+        "PENDING" -> "待付款"
+        "PAID" -> "已付款"
+        "DONE" -> "已完成"
+        "CANCELLED" -> "已取消"
+        else -> status
     }
 
     private fun renderVisits() {
@@ -192,13 +247,25 @@ class CustomerEditFragment : Fragment() {
     private fun save() {
         val name = binding.inputName.text?.toString()?.trim().orEmpty()
         val phone = binding.inputPhone.text?.toString()?.trim().orEmpty()
+            .replace(" ", "")
+            .replace("-", "")
         if (name.isBlank() || phone.isBlank()) {
             Toast.makeText(requireContext(), "请填写姓名和手机", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!PHONE_PATTERN.matches(phone)) {
+            Toast.makeText(requireContext(), "请输入正确的11位手机号", Toast.LENGTH_SHORT).show()
             return
         }
         val gender = when {
             binding.genderMale.isChecked -> "男"
             binding.genderFemale.isChecked -> "女"
+            else -> ""
+        }
+        val intention = when {
+            binding.intentionHigh.isChecked -> "高"
+            binding.intentionMid.isChecked -> "中"
+            binding.intentionLow.isChecked -> "低"
             else -> ""
         }
         val birthday = binding.inputBirthday.text?.toString()?.trim().orEmpty()
@@ -209,6 +276,9 @@ class CustomerEditFragment : Fragment() {
             phone = phone,
             gender = gender,
             birthday = birthday,
+            wechat = binding.inputWechat.text?.toString()?.trim().orEmpty(),
+            address = binding.inputAddress.text?.toString()?.trim().orEmpty(),
+            intention = intention,
             notes = binding.inputNotes.text?.toString()?.trim().orEmpty(),
         )
         viewLifecycleOwner.lifecycleScope.launch {
@@ -222,7 +292,9 @@ class CustomerEditFragment : Fragment() {
                 } else {
                     binding.pageTitle.text = "编辑客户"
                     binding.visitSection.isVisible = true
+                    binding.orderSection.isVisible = true
                     loadVisits()
+                    loadOrders()
                 }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "保存失败", Toast.LENGTH_SHORT).show()
@@ -236,11 +308,16 @@ class CustomerEditFragment : Fragment() {
     }
 
     companion object {
+        private val PHONE_PATTERN = Regex("""^1[3-9]\d{9}$""")
+
         const val ARG_ID = "customer_id"
         const val ARG_NAME = "name"
         const val ARG_PHONE = "phone"
         const val ARG_GENDER = "gender"
         const val ARG_BIRTHDAY = "birthday"
+        const val ARG_WECHAT = "wechat"
+        const val ARG_ADDRESS = "address"
+        const val ARG_INTENTION = "intention"
         const val ARG_NOTES = "notes"
 
         fun args(customer: Customer? = null): Bundle = Bundle().apply {
@@ -249,6 +326,9 @@ class CustomerEditFragment : Fragment() {
             putString(ARG_PHONE, customer?.phone.orEmpty())
             putString(ARG_GENDER, customer?.gender.orEmpty())
             putString(ARG_BIRTHDAY, customer?.birthday.orEmpty())
+            putString(ARG_WECHAT, customer?.wechat.orEmpty())
+            putString(ARG_ADDRESS, customer?.address.orEmpty())
+            putString(ARG_INTENTION, customer?.intention.orEmpty())
             putString(ARG_NOTES, customer?.notes.orEmpty())
         }
 
