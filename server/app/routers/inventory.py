@@ -69,7 +69,11 @@ def list_movements(
     if q:
         like = f"%{q.strip()}%"
         query = query.filter(
-            or_(StockMovement.item_name.like(like), StockMovement.inbound_no.like(like))
+            or_(
+                StockMovement.item_name.like(like),
+                StockMovement.inbound_no.like(like),
+                StockMovement.remark.like(like),
+            )
         )
     return query.limit(limit).all()
 

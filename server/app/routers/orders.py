@@ -8,22 +8,55 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from ..auth import get_current_admin
+from ..auth import get_current_admin, role_label
 from ..database import get_db
-from ..models import Admin, Customer, Order, OrderItem, Project, StockItem
-from ..schemas import OrderCreate, OrderOut, OrderStatusUpdate
+from ..models import Admin, Customer, Order, OrderItem, Project, StockItem, StockMovement
+from ..schemas import (
+    STOCK_OUT,
+    OrderCreate,
+    OrderOut,
+    OrderStatusUpdate,
+    OrderStockNeedOut,
+    OrderStockPreviewIn,
+    OrderStockPreviewOut,
+    OrderUpdate,
+)
 from ..stock import stock_out
 
 router = APIRouter(prefix="/api", tags=["orders"])
 
 VALID_STATUSES = {"PENDING", "PAID", "DONE", "CANCELLED"}
+ACTIVE_STATUSES = {"PENDING", "PAID", "DONE"}
 
 
 def _order_no() -> str:
     return datetime.utcnow().strftime("HC%Y%m%d%H%M%S%f")[:-3]
 
 
+def _order_load_options():
+    return (
+        joinedload(Order.customer),
+        joinedload(Order.items),
+        joinedload(Order.creator),
+    )
+
+
+def _out_remark(order_no: str) -> str:
+    """出库原因：订单号。"""
+    return f"订单号 {order_no}"
+
+
+def _order_out_remarks(order_no: str) -> List[str]:
+    # 兼容历史备注格式
+    return [
+        f"订单号 {order_no}",
+        f"出库 · 订单 {order_no}",
+        f"订单 {order_no}",
+    ]
+
+
 def serialize_order(order: Order) -> OrderOut:
+    creator = order.creator
     return OrderOut(
         id=order.id,
         order_no=order.order_no,
@@ -33,6 +66,9 @@ def serialize_order(order: Order) -> OrderOut:
         total_amount=order.total_amount,
         status=order.status,
         remark=order.remark or "",
+        created_by=order.created_by,
+        created_by_username=creator.username if creator else None,
+        created_by_role_label=role_label(creator.role) if creator else None,
         created_at=order.created_at,
         items=order.items,
     )
@@ -73,6 +109,109 @@ def _ensure_stock(db: Session, needs: Dict[int, int]) -> Dict[int, StockItem]:
     return stocks
 
 
+def _preview_stock(db: Session, body_items: List) -> OrderStockPreviewOut:
+    needs = _collect_stock_needs(db, body_items)
+    rows: List[OrderStockNeedOut] = []
+    enough = True
+    for item_id, need in sorted(needs.items(), key=lambda x: x[0]):
+        if need <= 0:
+            continue
+        stock = db.get(StockItem, item_id)
+        if not stock:
+            raise HTTPException(status_code=400, detail=f"项目关联产品不存在: {item_id}")
+        on_hand = int(stock.stock_qty or 0)
+        ok = on_hand >= need
+        if not ok:
+            enough = False
+        rows.append(
+            OrderStockNeedOut(
+                item_id=stock.id,
+                item_name=stock.name,
+                unit=stock.unit or "个",
+                need=need,
+                on_hand=on_hand,
+                enough=ok,
+            )
+        )
+    return OrderStockPreviewOut(items=rows, enough=enough)
+
+
+def _order_out_movements(db: Session, order_no: str) -> List[StockMovement]:
+    return (
+        db.query(StockMovement)
+        .filter(StockMovement.kind == STOCK_OUT)
+        .filter(StockMovement.remark.in_(_order_out_remarks(order_no)))
+        .all()
+    )
+
+
+def _restore_order_stock(db: Session, order: Order) -> None:
+    """撤销/删除时回滚该订单对应出库：库存加回并删除 OUT 流水。"""
+    for movement in _order_out_movements(db, order.order_no):
+        item = db.get(StockItem, movement.item_id)
+        qty = int(movement.quantity or 0)
+        if item and qty > 0:
+            item.stock_qty = int(item.stock_qty or 0) + qty
+        db.delete(movement)
+
+
+def _deduct_order_stock(
+    db: Session,
+    order_no: str,
+    needs: Dict[int, int],
+    stocks: Dict[int, StockItem],
+    admin_id: int,
+) -> None:
+    for item_id, qty in needs.items():
+        if qty <= 0:
+            continue
+        stock_out(
+            db,
+            stocks[item_id],
+            qty,
+            remark=_out_remark(order_no),
+            admin_id=admin_id,
+        )
+
+
+def _build_order_items(db: Session, body_items: List) -> List[OrderItem]:
+    items: List[OrderItem] = []
+    for item in body_items:
+        project = db.get(Project, item.project_id)
+        if not project or not project.active:
+            raise HTTPException(status_code=400, detail=f"项目不可用: {item.project_id}")
+        items.append(
+            OrderItem(
+                project_id=project.id,
+                project_name=project.name,
+                unit_price=project.price,
+                quantity=item.quantity,
+            )
+        )
+    return items
+
+
+def _get_order(db: Session, order_id: int) -> Order:
+    order = (
+        db.query(Order)
+        .options(*_order_load_options())
+        .filter(Order.id == order_id)
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="订单不存在")
+    return order
+
+
+@router.post("/orders/preview-stock", response_model=OrderStockPreviewOut)
+def preview_order_stock(
+    body: OrderStockPreviewIn,
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    return _preview_stock(db, body.items)
+
+
 @router.get("/orders", response_model=List[OrderOut])
 def list_orders(
     customer_id: Optional[int] = None,
@@ -82,7 +221,7 @@ def list_orders(
 ):
     query = (
         db.query(Order)
-        .options(joinedload(Order.customer), joinedload(Order.items))
+        .options(*_order_load_options())
         .order_by(Order.id.desc())
     )
     if customer_id is not None:
@@ -98,15 +237,7 @@ def get_order(
     db: Session = Depends(get_db),
     _: Admin = Depends(get_current_admin),
 ):
-    order = (
-        db.query(Order)
-        .options(joinedload(Order.customer), joinedload(Order.items))
-        .filter(Order.id == order_id)
-        .first()
-    )
-    if not order:
-        raise HTTPException(status_code=404, detail="订单不存在")
-    return serialize_order(order)
+    return serialize_order(_get_order(db, order_id))
 
 
 @router.get("/customers/{customer_id}/orders", response_model=List[OrderOut])
@@ -120,7 +251,7 @@ def list_customer_orders(
         raise HTTPException(status_code=404, detail="客户不存在")
     orders = (
         db.query(Order)
-        .options(joinedload(Order.customer), joinedload(Order.items))
+        .options(*_order_load_options())
         .filter(Order.customer_id == customer_id)
         .order_by(Order.id.desc())
         .all()
@@ -140,22 +271,8 @@ def create_order(
 
     needs = _collect_stock_needs(db, body.items)
     stocks = _ensure_stock(db, needs)
-
-    items: List[OrderItem] = []
+    items = _build_order_items(db, body.items)
     order_no = _order_no()
-    for item in body.items:
-        project = db.get(Project, item.project_id)
-        if not project or not project.active:
-            raise HTTPException(status_code=400, detail=f"项目不可用: {item.project_id}")
-        items.append(
-            OrderItem(
-                project_id=project.id,
-                project_name=project.name,
-                unit_price=project.price,
-                quantity=item.quantity,
-            )
-        )
-
     deal_price = Decimal(body.deal_price).quantize(Decimal("0.01"))
     order = Order(
         order_no=order_no,
@@ -168,26 +285,66 @@ def create_order(
     )
     db.add(order)
     db.flush()
-
-    for item_id, qty in needs.items():
-        if qty <= 0:
-            continue
-        stock_out(
-            db,
-            stocks[item_id],
-            qty,
-            remark=f"订单 {order_no}",
-            admin_id=admin.id,
-        )
-
+    _deduct_order_stock(db, order_no, needs, stocks, admin.id)
     db.commit()
-    order = (
-        db.query(Order)
-        .options(joinedload(Order.customer), joinedload(Order.items))
-        .filter(Order.id == order.id)
-        .first()
-    )
-    return serialize_order(order)
+    return serialize_order(_get_order(db, order.id))
+
+
+@router.put("/orders/{order_id}", response_model=OrderOut)
+def update_order(
+    order_id: int,
+    body: OrderUpdate,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    order = _get_order(db, order_id)
+    if order.status == "CANCELLED":
+        raise HTTPException(status_code=400, detail="已撤销订单不可修改")
+
+    needs = _collect_stock_needs(db, body.items)
+    # 先回滚旧出库，再按新明细校验并扣减
+    _restore_order_stock(db, order)
+    db.flush()
+    stocks = _ensure_stock(db, needs)
+
+    order.items.clear()
+    db.flush()
+    order.items.extend(_build_order_items(db, body.items))
+    order.total_amount = Decimal(body.deal_price).quantize(Decimal("0.01"))
+    order.remark = body.remark or ""
+    db.flush()
+    _deduct_order_stock(db, order.order_no, needs, stocks, admin.id)
+    db.commit()
+    return serialize_order(_get_order(db, order.id))
+
+
+@router.post("/orders/{order_id}/cancel", response_model=OrderOut)
+def cancel_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    order = _get_order(db, order_id)
+    if order.status == "CANCELLED":
+        return serialize_order(order)
+    if order.status not in ACTIVE_STATUSES:
+        raise HTTPException(status_code=400, detail="当前状态不可撤销")
+    _restore_order_stock(db, order)
+    order.status = "CANCELLED"
+    db.commit()
+    return serialize_order(_get_order(db, order.id))
+
+
+@router.delete("/orders/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    order = _get_order(db, order_id)
+    _restore_order_stock(db, order)
+    db.delete(order)
+    db.commit()
 
 
 @router.patch("/orders/{order_id}/status", response_model=OrderOut)
@@ -195,21 +352,31 @@ def update_order_status(
     order_id: int,
     body: OrderStatusUpdate,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
     status_value = body.status.upper()
     if status_value not in VALID_STATUSES:
         raise HTTPException(status_code=400, detail=f"状态无效，可选: {', '.join(sorted(VALID_STATUSES))}")
 
-    order = (
-        db.query(Order)
-        .options(joinedload(Order.customer), joinedload(Order.items))
-        .filter(Order.id == order_id)
-        .first()
-    )
-    if not order:
-        raise HTTPException(status_code=404, detail="订单不存在")
-    order.status = status_value
+    order = _get_order(db, order_id)
+    old = order.status
+    if old == status_value:
+        return serialize_order(order)
+
+    if status_value == "CANCELLED":
+        _restore_order_stock(db, order)
+        order.status = "CANCELLED"
+    elif old == "CANCELLED":
+        # 从已撤销恢复：重新扣库存
+        needs = _collect_stock_needs(
+            db,
+            [type("X", (), {"project_id": i.project_id, "quantity": i.quantity})() for i in order.items],
+        )
+        stocks = _ensure_stock(db, needs)
+        _deduct_order_stock(db, order.order_no, needs, stocks, admin.id)
+        order.status = status_value
+    else:
+        order.status = status_value
+
     db.commit()
-    db.refresh(order)
-    return serialize_order(order)
+    return serialize_order(_get_order(db, order.id))

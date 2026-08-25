@@ -167,9 +167,11 @@ data class StockMovement(
     val moved_at: String? = null,
     val created_at: String,
 ) {
-    fun kindLabel(): String = if (kind == "IN") "入库" else "出货"
+    fun kindLabel(): String = if (kind == "IN") "入库" else "出库"
 
     fun timeText(): String = formatVisitTime(moved_at ?: created_at).take(10)
+
+    fun reasonText(): String = remark?.trim().orEmpty()
 
     fun inboundNoText(): String {
         if (!inbound_no.isNullOrBlank()) return inbound_no
@@ -207,9 +209,19 @@ data class Order(
     val total_amount: Double,
     val status: String,
     val remark: String = "",
+    val created_by: Int? = null,
+    val created_by_username: String? = null,
+    val created_by_role_label: String? = null,
     val created_at: String,
     val items: List<OrderItem> = emptyList(),
-)
+) {
+    fun creatorText(): String {
+        val name = created_by_username?.trim().orEmpty()
+        if (name.isBlank()) return ""
+        val role = created_by_role_label?.trim().orEmpty()
+        return if (role.isNotBlank()) "$name（$role）" else name
+    }
+}
 
 data class OrderStatusUpdate(val status: String)
 

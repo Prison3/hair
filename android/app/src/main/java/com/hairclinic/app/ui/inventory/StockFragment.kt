@@ -65,8 +65,12 @@ class StockFragment : Fragment() {
                     row.moveQty.text = "${if (inbound) "+" else "-"}${m.qtyText()}"
                     row.moveTime.text = if (inbound) m.inboundNoText() else m.timeText()
                     val cost = if (m.unit_cost > 0) "¥${ProjectEditFragment.formatPrice(m.unit_cost)}" else ""
-                    row.moveMeta.text = listOf(m.item_name, cost, m.remark)
-                        .filter { !it.isNullOrBlank() }.joinToString(" · ").ifBlank { "无备注" }
+                    val reason = m.reasonText()
+                    row.moveMeta.text = listOf(
+                        m.item_name,
+                        cost,
+                        if (reason.isNotBlank()) "原因 $reason" else null,
+                    ).filter { !it.isNullOrBlank() }.joinToString(" · ").ifBlank { "无原因" }
                     binding.moveBox.addView(row.root)
                 }
             } catch (e: Exception) {
@@ -84,7 +88,12 @@ class StockFragment : Fragment() {
     private fun outbound() {
         val qty = binding.outQty.text?.toString()?.toIntOrNull() ?: 0
         if (qty <= 0) {
-            Toast.makeText(requireContext(), "请填写出货数量", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "请填写出库数量", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val reason = binding.outRemark.text?.toString()?.trim().orEmpty()
+        if (reason.isBlank()) {
+            Toast.makeText(requireContext(), "请填写出库原因", Toast.LENGTH_SHORT).show()
             return
         }
         viewLifecycleOwner.lifecycleScope.launch {
@@ -93,15 +102,15 @@ class StockFragment : Fragment() {
                     StockOutRequest(
                         item_id = itemId,
                         quantity = qty,
-                        remark = binding.outRemark.text?.toString()?.trim().orEmpty(),
+                        remark = reason,
                     )
                 )
-                Toast.makeText(requireContext(), "已出货", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "已出库", Toast.LENGTH_SHORT).show()
                 binding.outQty.setText("")
                 binding.outRemark.setText("")
                 refresh()
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), e.message ?: "出货失败", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), e.message ?: "出库失败", Toast.LENGTH_SHORT).show()
             }
         }
     }

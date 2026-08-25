@@ -11,7 +11,7 @@ import com.google.android.material.button.MaterialButton
 import com.hairclinic.app.R
 import com.hairclinic.app.databinding.FragmentListBinding
 
-enum class InventorySection { STOCK, INBOUND, PRODUCTS }
+enum class InventorySection { STOCK, MOVEMENTS, PRODUCTS }
 
 fun FragmentListBinding.setupInventoryTabs(
     fragment: Fragment,
@@ -23,14 +23,14 @@ fun FragmentListBinding.setupInventoryTabs(
     extraBtn.isVisible = true
     addBtn.isVisible = true
     stockBtn.text = "库存"
-    extraBtn.text = "入库"
+    extraBtn.text = "流水"
     addBtn.text = "产品"
     headerActionBtn.isVisible = onAdd != null
     if (addLabel != null) headerActionBtn.text = addLabel
     headerActionBtn.setOnClickListener { onAdd?.invoke() }
 
     stockBtn.setInventoryTabSelected(current == InventorySection.STOCK)
-    extraBtn.setInventoryTabSelected(current == InventorySection.INBOUND)
+    extraBtn.setInventoryTabSelected(current == InventorySection.MOVEMENTS)
     addBtn.setInventoryTabSelected(current == InventorySection.PRODUCTS)
 
     val nav = fragment.findNavController()

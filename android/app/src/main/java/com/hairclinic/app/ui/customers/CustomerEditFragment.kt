@@ -126,9 +126,11 @@ class CustomerEditFragment : Fragment() {
             val time = formatVisitTime(order.created_at)
             row.visitTime.text = "${order.order_no} · ${orderStatusLabel(order.status)}"
             val detail = order.items.joinToString(" · ") { "${it.project_name}×${it.quantity}" }
+            val creator = order.creatorText()
             row.visitContent.text = buildString {
                 append("¥${"%.2f".format(order.total_amount)}")
                 if (time.isNotBlank()) append(" · $time")
+                if (creator.isNotBlank()) append(" · 下单 $creator")
                 append("\n")
                 append(detail.ifBlank { "无项目" })
                 if (order.remark.isNotBlank()) append("\n备注 ${order.remark}")

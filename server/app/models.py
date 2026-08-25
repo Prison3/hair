@@ -102,6 +102,7 @@ class Order(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     customer: Mapped["Customer"] = relationship("Customer", back_populates="orders")
+    creator: Mapped[Optional["Admin"]] = relationship("Admin", foreign_keys=[created_by])
     items: Mapped[List["OrderItem"]] = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
     )

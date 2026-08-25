@@ -1,6 +1,6 @@
 # 心尚植发
 
-Python3（FastAPI）+ SQLite 后端，Web 管理后台，Android（Kotlin）店员端。
+Python3（FastAPI）+ SQLite 后端，Android（Kotlin）店员端。
 
 ## 功能
 
@@ -14,7 +14,7 @@ Python3（FastAPI）+ SQLite 后端，Web 管理后台，Android（Kotlin）店�
 
 ```
 hair-clinic/
-  server/     # FastAPI + SQLite + Web 后台
+  server/     # FastAPI + SQLite API
   android/    # Android Studio 工程
 ```
 
@@ -28,10 +28,8 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-浏览器打开：
-
-- 管理后台：http://127.0.0.1:8000/
 - API 文档：http://127.0.0.1:8000/docs
+- APK 下载：http://127.0.0.1:8000/download/hairclinic.apk
 
 默认账号：
 

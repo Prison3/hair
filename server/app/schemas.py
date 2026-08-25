@@ -111,6 +111,13 @@ class CustomerBase(BaseModel):
     intention: str = Field(default="", max_length=16)
     notes: str = ""
 
+    @field_validator("wechat", "address", "notes", mode="before")
+    @classmethod
+    def trim_optional(cls, value) -> str:
+        return (value or "").strip() if value is not None else ""
+
+
+class CustomerCreate(CustomerBase):
     @field_validator("phone")
     @classmethod
     def check_phone(cls, value: str) -> str:
@@ -127,17 +134,8 @@ class CustomerBase(BaseModel):
             raise ValueError("意向度可选：高 / 中 / 低")
         return intention
 
-    @field_validator("wechat", "address", "notes", mode="before")
-    @classmethod
-    def trim_optional(cls, value) -> str:
-        return (value or "").strip() if value is not None else ""
 
-
-class CustomerCreate(CustomerBase):
-    pass
-
-
-class CustomerUpdate(CustomerBase):
+class CustomerUpdate(CustomerCreate):
     pass
 
 
@@ -148,6 +146,17 @@ class CustomerOut(CustomerBase):
     created_at: datetime
     last_visited_at: Optional[datetime] = None
     visit_count: int = 0
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def keep_phone(cls, value) -> str:
+        # 列表/详情不强制校验历史脏数据，避免整表 500
+        return (value or "").strip() if value is not None else ""
+
+    @field_validator("intention", mode="before")
+    @classmethod
+    def keep_intention(cls, value) -> str:
+        return (value or "").strip() if value is not None else ""
 
 
 class CustomerVisitIn(BaseModel):
@@ -314,12 +323,15 @@ class StockInBody(BaseModel):
 class StockOutBody(BaseModel):
     item_id: int
     quantity: int = Field(ge=1)
-    remark: str = ""
+    remark: str = Field(min_length=1, max_length=255, description="出库原因")
 
     @field_validator("remark")
     @classmethod
     def trim_remark(cls, value: str) -> str:
-        return (value or "").strip()
+        reason = (value or "").strip()
+        if not reason:
+            raise ValueError("请填写出库原因")
+        return reason
 
 
 class StockMovementOut(BaseModel):
@@ -361,6 +373,12 @@ class OrderCreate(BaseModel):
     remark: str = ""
 
 
+class OrderUpdate(BaseModel):
+    deal_price: Decimal = Field(ge=0, description="最终成交价格")
+    remark: str = ""
+    items: List[OrderItemIn] = Field(min_length=1)
+
+
 class OrderItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -382,12 +400,33 @@ class OrderOut(BaseModel):
     total_amount: Decimal
     status: str
     remark: str
+    created_by: Optional[int] = None
+    created_by_username: Optional[str] = None
+    created_by_role_label: Optional[str] = None
     created_at: datetime
     items: List[OrderItemOut] = []
 
 
 class OrderStatusUpdate(BaseModel):
     status: str
+
+
+class OrderStockNeedOut(BaseModel):
+    item_id: int
+    item_name: str
+    unit: str = "个"
+    need: int
+    on_hand: int
+    enough: bool
+
+
+class OrderStockPreviewIn(BaseModel):
+    items: List[OrderItemIn] = Field(min_length=1)
+
+
+class OrderStockPreviewOut(BaseModel):
+    items: List[OrderStockNeedOut] = Field(default_factory=list)
+    enough: bool = True
 
 
 class RevenueDayOut(BaseModel):

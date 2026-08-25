@@ -74,9 +74,14 @@ class OrdersFragment : Fragment() {
                     val customer = listOfNotNull(o.customer_name, o.customer_phone)
                         .filter { it.isNotBlank() }
                         .joinToString("  ")
+                    val creator = o.creatorText()
                     Item(
                         title = o.order_no,
-                        subtitle = "${customer.ifBlank { "—" }}\n¥${"%.2f".format(o.total_amount)} · ${detail.ifBlank { "无项目" }}",
+                        subtitle = buildString {
+                            append(customer.ifBlank { "—" })
+                            append("\n¥${"%.2f".format(o.total_amount)} · ${detail.ifBlank { "无项目" }}")
+                            if (creator.isNotBlank()) append("\n下单账号 $creator")
+                        },
                         badge = statusLabel(o.status),
                         badgeTone = statusTone(o.status),
                         clickable = false,

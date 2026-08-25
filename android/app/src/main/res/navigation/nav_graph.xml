@@ -39,7 +39,7 @@
     <fragment
         android:id="@+id/inboundListFragment"
         android:name="com.hairclinic.app.ui.inventory.InboundListFragment"
-        android:label="入库" />
+        android:label="流水" />
     <fragment
         android:id="@+id/inboundFragment"
         android:name="com.hairclinic.app.ui.inventory.InboundFragment"
@@ -47,7 +47,7 @@
     <fragment
         android:id="@+id/stockFragment"
         android:name="com.hairclinic.app.ui.inventory.StockFragment"
-        android:label="进出货" />
+        android:label="出入库" />
     <fragment
         android:id="@+id/billingFragment"
         android:name="com.hairclinic.app.ui.billing.BillingFragment"

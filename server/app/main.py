@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from .auth import ROLE_ADMIN, ROLE_MANAGER, hash_password
@@ -12,8 +10,6 @@ from .database import Base, SessionLocal, engine
 from .models import Admin, Project
 from .stock import backfill_inbound_nos
 from .routers import app_release, auth, customers, inventory, orders, projects, revenue
-
-STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
 def migrate_schema() -> None:
@@ -147,8 +143,16 @@ def create_app() -> FastAPI:
     app.include_router(revenue.router)
     app.include_router(app_release.router)
 
-    if STATIC_DIR.exists():
-        app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+    @app.get("/")
+    def root():
+        return JSONResponse(
+            {
+                "name": "心尚植发",
+                "message": "请使用 Android 客户端",
+                "docs": "/docs",
+                "apk": "/download/hairclinic.apk",
+            }
+        )
 
     return app
 
