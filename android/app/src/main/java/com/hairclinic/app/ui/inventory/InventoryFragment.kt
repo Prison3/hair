@@ -32,8 +32,8 @@ class InventoryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "库存"
-        binding.pageSubtitle.text = "各药品当前库存数量"
-        binding.searchInput.hint = "搜索药品名"
+        binding.pageSubtitle.text = "各产品当前库存数量"
+        binding.searchInput.hint = "搜索产品名"
         binding.setupInventoryTabs(this, InventorySection.STOCK)
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
@@ -67,7 +67,7 @@ class InventoryFragment : Fragment() {
                     )
                 })
                 binding.emptyText.isVisible = list.isEmpty()
-                binding.emptyText.text = "暂无库存信息，请先添加药品并入库"
+                binding.emptyText.text = "暂无库存信息，请先添加产品并入库"
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
             }

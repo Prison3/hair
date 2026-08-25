@@ -66,11 +66,7 @@ class ProjectEditFragment : Fragment() {
                 binding.medicineBox.removeAllViews()
                 medicineRows.clear()
                 val presets = saved?.medicines.orEmpty()
-                if (presets.isEmpty()) {
-                    if (stockItems.isNotEmpty()) addMedicineRow()
-                } else {
-                    presets.forEach { addMedicineRow(it) }
-                }
+                presets.forEach { addMedicineRow(it) }
                 refreshEmpty()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
@@ -80,7 +76,7 @@ class ProjectEditFragment : Fragment() {
 
     private fun addMedicineRow(preset: ProjectMedicine? = null) {
         if (stockItems.isEmpty()) {
-            Toast.makeText(requireContext(), "请先在库存添加药品", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "请先在库存添加产品", Toast.LENGTH_SHORT).show()
             return
         }
         val row = ItemProjectMedicineBinding.inflate(layoutInflater, binding.medicineBox, false)
@@ -127,11 +123,11 @@ class ProjectEditFragment : Fragment() {
             val name = row.inputMedName.text?.toString()?.trim().orEmpty()
             val item = stockItems.firstOrNull { it.name == name }
             if (item == null) {
-                Toast.makeText(requireContext(), "请选择药品", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "请选择产品", Toast.LENGTH_SHORT).show()
                 return null
             }
             if (!seen.add(item.id)) {
-                Toast.makeText(requireContext(), "同一药品不能重复添加", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "同一产品不能重复添加", Toast.LENGTH_SHORT).show()
                 return null
             }
             val qty = row.inputDose.text?.toString()?.toIntOrNull() ?: 0
@@ -143,10 +139,6 @@ class ProjectEditFragment : Fragment() {
                 .ifBlank { item.unitLabel() }
                 .let { if (it in InboundFragment.UNITS) it else "个" }
             result += ProjectMedicine(item_id = item.id, item_name = item.name, quantity = qty, unit = unit)
-        }
-        if (result.isEmpty()) {
-            Toast.makeText(requireContext(), "请至少添加一种药品", Toast.LENGTH_SHORT).show()
-            return null
         }
         return result
     }
@@ -227,7 +219,7 @@ class ProjectEditFragment : Fragment() {
                     if (detail is org.json.JSONArray && detail.length() > 0) {
                         val first = detail.optJSONObject(0)
                         val msg = first?.optString("msg").orEmpty()
-                        if (msg.isNotBlank()) return "请至少添加一种药品"
+                        if (msg.isNotBlank()) return msg
                     }
                 }
             }

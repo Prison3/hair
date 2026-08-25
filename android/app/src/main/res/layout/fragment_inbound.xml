@@ -40,7 +40,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="14dp"
-        android:text="从药品表选择后填写进货日期、数量、单位和价格"
+        android:text="从产品表选择后填写进货日期、数量、单位和价格"
         android:textColor="@color/ink_soft"
         android:textSize="13sp" />
 
@@ -61,7 +61,7 @@
                 style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="选择药品"
+                android:hint="选择产品"
                 app:endIconMode="dropdown_menu"
                 app:startIconDrawable="@drawable/ic_nav_projects">
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
@@ -78,7 +78,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="请先在药品表录入药品"
+                android:text="请先在产品表录入产品"
                 android:textColor="@color/ink_soft"
                 android:textSize="13sp"
                 android:visibility="gone" />

@@ -77,13 +77,13 @@ def stock_in(
     if item_id:
         item = db.get(StockItem, item_id)
         if not item:
-            raise HTTPException(status_code=404, detail="药品不存在")
+            raise HTTPException(status_code=404, detail="产品不存在")
         if unit:
             item.unit = unit
     else:
         name = (name or "").strip()
         if not name:
-            raise HTTPException(status_code=400, detail="请选择药品")
+            raise HTTPException(status_code=400, detail="请选择产品")
         item = get_or_create_item(db, name, unit, spec)
     qty = int(quantity)
     cost = _money(unit_cost or 0)

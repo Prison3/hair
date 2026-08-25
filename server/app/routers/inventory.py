@@ -42,7 +42,7 @@ def create_item(
     _: Admin = Depends(require_admin),
 ):
     if _duplicate_name(db, body.name):
-        raise HTTPException(status_code=400, detail="已有同名药品")
+        raise HTTPException(status_code=400, detail="已有同名产品")
     item = StockItem(name=body.name, stock_qty=0, cost_price=0)
     db.add(item)
     db.commit()
@@ -95,7 +95,7 @@ def get_item(
 ):
     item = db.get(StockItem, item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="药品不存在")
+        raise HTTPException(status_code=404, detail="产品不存在")
     return item
 
 
@@ -108,9 +108,9 @@ def update_item(
 ):
     item = db.get(StockItem, item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="药品不存在")
+        raise HTTPException(status_code=404, detail="产品不存在")
     if _duplicate_name(db, body.name, exclude_id=item_id):
-        raise HTTPException(status_code=400, detail="已有同名药品")
+        raise HTTPException(status_code=400, detail="已有同名产品")
     item.name = body.name
     db.query(ProjectMedicine).filter(ProjectMedicine.item_id == item_id).update(
         {ProjectMedicine.item_name: body.name}, synchronize_session=False
@@ -128,9 +128,9 @@ def delete_item(
 ):
     item = db.get(StockItem, item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="药品不存在")
+        raise HTTPException(status_code=404, detail="产品不存在")
     if db.query(ProjectMedicine).filter(ProjectMedicine.item_id == item_id).first():
-        raise HTTPException(status_code=400, detail="该药品已用于项目，无法删除")
+        raise HTTPException(status_code=400, detail="该产品已用于项目，无法删除")
     db.query(StockMovement).filter(StockMovement.item_id == item_id).delete(
         synchronize_session=False
     )
@@ -168,7 +168,7 @@ def outbound(
 ):
     item = db.get(StockItem, body.item_id)
     if not item:
-        raise HTTPException(status_code=404, detail="药品不存在")
+        raise HTTPException(status_code=404, detail="产品不存在")
     movement = stock_out(db, item, body.quantity, body.remark, admin.id)
     db.commit()
     db.refresh(movement)

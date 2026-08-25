@@ -24,7 +24,7 @@ fun FragmentListBinding.setupInventoryTabs(
     addBtn.isVisible = true
     stockBtn.text = "库存"
     extraBtn.text = "入库"
-    addBtn.text = "药品"
+    addBtn.text = "产品"
     headerActionBtn.isVisible = onAdd != null
     if (addLabel != null) headerActionBtn.text = addLabel
     headerActionBtn.setOnClickListener { onAdd?.invoke() }

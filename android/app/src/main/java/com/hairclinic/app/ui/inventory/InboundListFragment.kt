@@ -34,7 +34,7 @@ class InboundListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "入库"
         binding.pageSubtitle.text = "入库记录"
-        binding.searchInput.hint = "搜索药品名 / 入库编号"
+        binding.searchInput.hint = "搜索产品名 / 入库编号"
         binding.tableHeader.isVisible = true
         binding.tableCol3.isVisible = true
         binding.setupInventoryTabs(

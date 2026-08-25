@@ -93,7 +93,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="组成药品"
+                android:text="关联产品（可选）"
                 android:textColor="@color/ink"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -102,7 +102,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="一个项目由多种药品组成，请设置每种药品的剂量"
+                android:text="可选：为项目绑定产品并设置剂量，不绑也可以保存"
                 android:textColor="@color/ink_soft"
                 android:textSize="13sp" />
 
@@ -117,7 +117,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="还没有药品，请点击下方添加"
+                android:text="未关联产品（可不添加）"
                 android:textColor="@color/ink_soft"
                 android:textSize="13sp" />
 
@@ -127,7 +127,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="12dp"
-                android:text="添加药品" />
+                android:text="添加产品" />
         </LinearLayout>
 
         <LinearLayout

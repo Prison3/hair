@@ -36,7 +36,7 @@
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:fontFamily="serif"
-                android:text="录入药品"
+                android:text="录入产品"
                 android:textColor="@color/pine"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -54,7 +54,7 @@
                 style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="药品名"
+                android:hint="产品名"
                 app:startIconDrawable="@drawable/ic_nav_projects">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/inputName"
@@ -124,7 +124,7 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="12dp"
-            android:text="删除药品"
+            android:text="删除产品"
             android:textColor="@color/cinnabar"
             android:visibility="gone"
             app:cornerRadius="12dp"

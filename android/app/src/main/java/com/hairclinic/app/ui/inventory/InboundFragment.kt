@@ -67,14 +67,14 @@ class InboundFragment : Fragment() {
                 }
                 bindMeta()
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), e.message ?: "加载药品失败", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), e.message ?: "加载产品失败", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun bindMeta() {
         binding.productMeta.isVisible = products.isEmpty()
-        binding.productMeta.text = "暂无药品，请先在药品表录入"
+        binding.productMeta.text = "暂无产品，请先在产品表录入"
     }
 
     private fun selectUnit(raw: String?) {
@@ -117,7 +117,7 @@ class InboundFragment : Fragment() {
         if (item == null) {
             Toast.makeText(
                 requireContext(),
-                if (products.isEmpty()) "请先添加药品" else "请选择药品",
+                if (products.isEmpty()) "请先添加产品" else "请选择产品",
                 Toast.LENGTH_SHORT,
             ).show()
             return

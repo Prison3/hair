@@ -30,7 +30,7 @@ class ProjectsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "项目"
-        binding.pageSubtitle.text = "由药品组成的项目与价格"
+        binding.pageSubtitle.text = "项目与价格；产品为可选项"
         binding.addBtn.text = "添加项目"
         binding.searchRow.isVisible = false
         binding.list.layoutManager = LinearLayoutManager(requireContext())

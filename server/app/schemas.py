@@ -199,11 +199,11 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    medicines: List[ProjectMedicineIn] = Field(min_length=1)
+    medicines: List[ProjectMedicineIn] = Field(default_factory=list)
 
 
 class ProjectUpdate(ProjectBase):
-    medicines: List[ProjectMedicineIn] = Field(min_length=1)
+    medicines: List[ProjectMedicineIn] = Field(default_factory=list)
 
 
 class ProjectOut(ProjectBase):
@@ -228,7 +228,7 @@ class StockItemIn(BaseModel):
     def trim_name(cls, value: str) -> str:
         name = (value or "").strip()
         if not name:
-            raise ValueError("请填写药品名")
+            raise ValueError("请填写产品名")
         return name
 
 
@@ -282,7 +282,7 @@ class StockInBody(BaseModel):
     @model_validator(mode="after")
     def need_product(self):
         if not self.item_id and not self.name:
-            raise ValueError("请选择药品")
+            raise ValueError("请选择产品")
         return self
 
 

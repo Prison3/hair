@@ -22,11 +22,11 @@ def _replace_medicines(db: Session, project: Project, medicines: List[ProjectMed
     rows: List[ProjectMedicine] = []
     for item in medicines:
         if item.item_id in seen:
-            raise HTTPException(status_code=400, detail="同一药品不能重复添加")
+            raise HTTPException(status_code=400, detail="同一产品不能重复添加")
         seen.add(item.item_id)
         stock = db.get(StockItem, item.item_id)
         if not stock:
-            raise HTTPException(status_code=404, detail="药品不存在")
+            raise HTTPException(status_code=404, detail="产品不存在")
         rows.append(
             ProjectMedicine(
                 item_id=stock.id,
