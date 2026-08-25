@@ -63,7 +63,7 @@ class StockFragment : Fragment() {
                         if (inbound) R.drawable.bg_badge else R.drawable.bg_badge_warn
                     )
                     row.moveQty.text = "${if (inbound) "+" else "-"}${m.qtyText()}"
-                    row.moveTime.text = if (inbound) m.inboundNoText() else m.timeText()
+                    row.moveTime.text = m.inboundNoText()
                     val cost = if (m.unit_cost > 0) "¥${ProjectEditFragment.formatPrice(m.unit_cost)}" else ""
                     val reason = m.reasonText()
                     row.moveMeta.text = listOf(

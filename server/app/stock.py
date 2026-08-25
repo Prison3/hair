@@ -14,14 +14,19 @@ def _money(value: Decimal) -> Decimal:
     return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def make_inbound_no(db: Session, when: datetime | None = None) -> str:
-    base = (when or datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+def make_movement_no(db: Session, when: datetime | None = None) -> str:
+    """出入库编号：YYYYMMDDHHMMSS，冲突时追加 -n。"""
+    base = (when or datetime.now()).strftime("%Y%m%d%H%M%S")
     no = base
     n = 1
     while db.query(StockMovement).filter(StockMovement.inbound_no == no).first():
         n += 1
         no = f"{base}-{n}"
     return no
+
+
+# 兼容旧调用名
+make_inbound_no = make_movement_no
 
 
 def backfill_inbound_nos() -> None:
@@ -31,12 +36,12 @@ def backfill_inbound_nos() -> None:
     try:
         rows = (
             db.query(StockMovement)
-            .filter(StockMovement.kind == STOCK_IN)
             .filter((StockMovement.inbound_no == "") | (StockMovement.inbound_no.is_(None)))
+            .order_by(StockMovement.id.asc())
             .all()
         )
         for movement in rows:
-            movement.inbound_no = make_inbound_no(db, movement.created_at)
+            movement.inbound_no = make_movement_no(db, movement.created_at or datetime.now())
             db.flush()
         db.commit()
     finally:
@@ -103,7 +108,7 @@ def stock_in(
         unit_cost=cost,
         remark="",
         moved_at=moved_at or date.today(),
-        inbound_no=make_inbound_no(db),
+        inbound_no=make_movement_no(db),
         created_by=admin_id,
     )
     db.add(movement)
@@ -135,6 +140,7 @@ def stock_out(
         unit_cost=_money(item.cost_price or 0),
         remark=remark or "",
         moved_at=moved_at or date.today(),
+        inbound_no=make_movement_no(db),
         created_by=admin_id,
     )
     db.add(movement)

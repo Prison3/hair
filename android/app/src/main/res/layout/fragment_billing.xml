@@ -45,22 +45,62 @@
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <Spinner
-                android:id="@+id/customerSpinner"
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/bg_input"
-                android:paddingHorizontal="4dp" />
+                android:hint="输入姓名或手机号搜索"
+                app:endIconMode="clear_text">
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/inputCustomer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:completionThreshold="1"
+                    android:imeOptions="actionDone"
+                    android:inputType="text"
+                    android:minHeight="56dp"
+                    android:paddingVertical="14dp"
+                    android:textColor="@color/ink"
+                    android:textSize="16sp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
-                android:layout_width="wrap_content"
+                android:id="@+id/customerHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="支持按姓名、手机号模糊匹配"
+                android:textColor="@color/ink_soft"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
-                android:text="项目（可多选）"
-                android:textColor="@color/ink"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="项目"
+                    android:textColor="@color/ink"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/addProjectBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:text="添加"
+                    android:textColor="@color/pine"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/projectBox"
@@ -68,6 +108,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/projectEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="点击右上角添加项目"
+                android:textColor="@color/ink_soft"
+                android:textSize="12sp" />
 
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.XinShang.TextInput"

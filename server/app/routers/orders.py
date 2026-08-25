@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -27,6 +27,7 @@ router = APIRouter(prefix="/api", tags=["orders"])
 
 VALID_STATUSES = {"PENDING", "PAID", "DONE", "CANCELLED"}
 ACTIVE_STATUSES = {"PENDING", "PAID", "DONE"}
+CANCEL_WINDOW = timedelta(hours=24)
 
 
 def _order_no() -> str:
@@ -203,6 +204,22 @@ def _get_order(db: Session, order_id: int) -> Order:
     return order
 
 
+def _within_cancel_window(order: Order) -> bool:
+    created = order.created_at
+    if created is None:
+        return False
+    return created >= datetime.utcnow() - CANCEL_WINDOW
+
+
+def _ensure_cancellable(order: Order) -> None:
+    if order.status == "CANCELLED":
+        return
+    if order.status not in ACTIVE_STATUSES:
+        raise HTTPException(status_code=400, detail="当前状态不可撤销")
+    if not _within_cancel_window(order):
+        raise HTTPException(status_code=400, detail="只能撤销 24 小时内的订单")
+
+
 @router.post("/orders/preview-stock", response_model=OrderStockPreviewOut)
 def preview_order_stock(
     body: OrderStockPreviewIn,
@@ -229,6 +246,23 @@ def list_orders(
     if status_filter:
         query = query.filter(Order.status == status_filter.upper())
     return [serialize_order(o) for o in query.all()]
+
+
+@router.get("/orders/by-no/{order_no}", response_model=OrderOut)
+def get_order_by_no(
+    order_no: str,
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    order = (
+        db.query(Order)
+        .options(*_order_load_options())
+        .filter(Order.order_no == order_no.strip())
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="订单不存在")
+    return serialize_order(order)
 
 
 @router.get("/orders/{order_id}", response_model=OrderOut)
@@ -327,8 +361,7 @@ def cancel_order(
     order = _get_order(db, order_id)
     if order.status == "CANCELLED":
         return serialize_order(order)
-    if order.status not in ACTIVE_STATUSES:
-        raise HTTPException(status_code=400, detail="当前状态不可撤销")
+    _ensure_cancellable(order)
     _restore_order_stock(db, order)
     order.status = "CANCELLED"
     db.commit()
@@ -364,6 +397,7 @@ def update_order_status(
         return serialize_order(order)
 
     if status_value == "CANCELLED":
+        _ensure_cancellable(order)
         _restore_order_stock(db, order)
         order.status = "CANCELLED"
     elif old == "CANCELLED":

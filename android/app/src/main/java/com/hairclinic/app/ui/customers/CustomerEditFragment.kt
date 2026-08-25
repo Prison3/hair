@@ -7,11 +7,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Customer
 import com.hairclinic.app.data.CustomerVisit
@@ -20,6 +22,7 @@ import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.DialogVisitBinding
 import com.hairclinic.app.databinding.FragmentCustomerEditBinding
 import com.hairclinic.app.databinding.ItemVisitBinding
+import com.hairclinic.app.ui.billing.BillingFragment
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -68,6 +71,33 @@ class CustomerEditFragment : Fragment() {
         binding.cancelBtn.setOnClickListener { findNavController().navigateUp() }
         binding.saveBtn.setOnClickListener { save() }
         binding.addVisitBtn.setOnClickListener { showVisitDialog(null) }
+        binding.billBtn.setOnClickListener { openBilling() }
+        binding.billBtn.isVisible = isEdit
+    }
+
+    private fun openBilling() {
+        if (customerId <= 0) {
+            Toast.makeText(requireContext(), "请先保存客户", Toast.LENGTH_SHORT).show()
+            return
+        }
+        findNavController().navigate(
+            R.id.billingFragment,
+            BillingFragment.args(
+                customerId = customerId,
+                name = binding.inputName.text?.toString()?.trim().orEmpty()
+                    .ifBlank { arguments?.getString(ARG_NAME).orEmpty() },
+                phone = binding.inputPhone.text?.toString()?.trim().orEmpty()
+                    .ifBlank { arguments?.getString(ARG_PHONE).orEmpty() },
+            ),
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null && customerId > 0) {
+            loadOrders()
+            loadVisits()
+        }
     }
 
     private fun pickBirthday() {
@@ -135,11 +165,36 @@ class CustomerEditFragment : Fragment() {
                 append(detail.ifBlank { "无项目" })
                 if (order.remark.isNotBlank()) append("\n备注 ${order.remark}")
             }
-            row.visitDelete.isVisible = false
-            row.root.isClickable = false
-            row.root.isFocusable = false
+            row.visitDelete.text = "详情"
+            row.visitDelete.setTextColor(ContextCompat.getColor(requireContext(), R.color.pine))
+            row.visitDelete.isVisible = true
+            row.visitDelete.setOnClickListener { showOrderDetail(order) }
+            row.root.setOnClickListener { showOrderDetail(order) }
             binding.orderBox.addView(row.root)
         }
+    }
+
+    private fun showOrderDetail(order: Order) {
+        val itemsText = order.items.joinToString("\n") {
+            "· ${it.project_name} × ${it.quantity}（标价 ¥${"%.2f".format(it.unit_price)}）"
+        }.ifBlank { "无项目" }
+        val message = buildString {
+            appendLine("订单号：${order.order_no}")
+            appendLine("状态：${orderStatusLabel(order.status)}")
+            appendLine("成交金额：¥${"%.2f".format(order.total_amount)}")
+            appendLine("下单时间：${formatVisitTime(order.created_at).ifBlank { "—" }}")
+            val creator = order.creatorText()
+            appendLine("下单账号：${creator.ifBlank { "—" }}")
+            if (order.remark.isNotBlank()) appendLine("备注：${order.remark}")
+            appendLine()
+            appendLine("项目明细：")
+            append(itemsText)
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("订单详情")
+            .setMessage(message.trim())
+            .setPositiveButton("关闭", null)
+            .show()
     }
 
     private fun orderStatusLabel(status: String): String = when (status) {
@@ -295,6 +350,7 @@ class CustomerEditFragment : Fragment() {
                     binding.pageTitle.text = "编辑客户"
                     binding.visitSection.isVisible = true
                     binding.orderSection.isVisible = true
+                    binding.billBtn.isVisible = true
                     loadVisits()
                     loadOrders()
                 }

@@ -11,12 +11,15 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
+import com.hairclinic.app.data.Order
 import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.ui.customers.BadgeTone
 import com.hairclinic.app.ui.customers.Item
 import com.hairclinic.app.ui.customers.SimpleAdapter
+import com.hairclinic.app.ui.projects.ProjectEditFragment
 import kotlinx.coroutines.launch
 
 class OrdersFragment : Fragment() {
@@ -39,7 +42,7 @@ class OrdersFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "订单"
-        binding.pageSubtitle.text = "消费记录与状态"
+        binding.pageSubtitle.text = "仅可撤销 24 小时内订单"
         binding.addBtn.isVisible = false
         binding.searchInput.isVisible = false
         binding.filterSpinner.isVisible = true
@@ -63,6 +66,11 @@ class OrdersFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null) load()
+    }
+
     private fun load() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -75,6 +83,7 @@ class OrdersFragment : Fragment() {
                         .filter { it.isNotBlank() }
                         .joinToString("  ")
                     val creator = o.creatorText()
+                    val canCancel = o.canCancel()
                     Item(
                         title = o.order_no,
                         subtitle = buildString {
@@ -85,12 +94,43 @@ class OrdersFragment : Fragment() {
                         badge = statusLabel(o.status),
                         badgeTone = statusTone(o.status),
                         clickable = false,
+                        actionLabel = "撤销",
+                        onAction = if (canCancel) ({ confirmCancel(o) }) else null,
                     )
                 })
                 binding.emptyText.isVisible = list.isEmpty()
                 binding.emptyText.text = "暂无订单"
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    ProjectEditFragment.apiError(e, "加载失败"),
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun confirmCancel(order: Order) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("撤销订单")
+            .setMessage("确定撤销「${order.order_no}」？将回滚对应出库并恢复库存。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("撤销") { _, _ -> cancel(order) }
+            .show()
+    }
+
+    private fun cancel(order: Order) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                ApiClient.get(requireContext()).cancelOrder(order.id)
+                Toast.makeText(requireContext(), "已撤销", Toast.LENGTH_SHORT).show()
+                load()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    ProjectEditFragment.apiError(e, "撤销失败"),
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
         }
     }

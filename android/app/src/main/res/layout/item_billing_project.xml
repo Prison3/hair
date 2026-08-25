@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
+    android:layout_marginBottom="10dp"
     android:background="@drawable/bg_input"
     android:orientation="vertical"
     android:paddingHorizontal="12dp"
-    android:paddingVertical="10dp">
+    android:paddingVertical="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -14,37 +15,65 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <CheckBox
-            android:id="@+id/projectCheck"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.XinShang.TextInput"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:buttonTint="@color/pine"
-            android:textColor="@color/ink"
-            android:textSize="15sp" />
+            android:hint="选择项目"
+            app:endIconMode="dropdown_menu">
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/inputProject"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:minHeight="52dp"
+                android:paddingVertical="12dp"
+                android:textColor="@color/ink"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/removeBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="10dp"
+            android:text="删除"
+            android:textColor="@color/cinnabar"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/projectMeta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/ink_soft"
+            android:textSize="13sp" />
 
         <EditText
             android:id="@+id/projectQty"
-            android:layout_width="72dp"
-            android:layout_height="wrap_content"
+            android:layout_width="80dp"
+            android:layout_height="44dp"
             android:background="@drawable/bg_chip"
             android:gravity="center"
             android:hint="数量"
             android:inputType="number"
             android:paddingHorizontal="8dp"
-            android:paddingVertical="6dp"
             android:text="1"
             android:textColor="@color/ink"
             android:textColorHint="@color/ink_soft"
-            android:textSize="14sp" />
+            android:textSize="15sp" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/projectMeta"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="4dp"
-        android:paddingTop="2dp"
-        android:textColor="@color/ink_soft"
-        android:textSize="12sp" />
 </LinearLayout>

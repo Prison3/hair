@@ -173,6 +173,22 @@ data class StockMovement(
 
     fun reasonText(): String = remark?.trim().orEmpty()
 
+    /** 从出库原因解析订单号，如「订单号 HC2026...」 */
+    fun linkedOrderNo(): String? {
+        val reason = reasonText()
+        if (reason.isBlank()) return null
+        val patterns = listOf(
+            Regex("""订单号\s*([A-Za-z0-9_-]+)"""),
+            Regex("""出库\s*·\s*订单\s*([A-Za-z0-9_-]+)"""),
+            Regex("""订单\s+([A-Za-z0-9_-]+)"""),
+        )
+        for (p in patterns) {
+            val m = p.find(reason) ?: continue
+            return m.groupValues[1]
+        }
+        return null
+    }
+
     fun inboundNoText(): String {
         if (!inbound_no.isNullOrBlank()) return inbound_no
         return created_at.replace('T', ' ').replace('Z', ' ').trim().take(19)
@@ -220,6 +236,27 @@ data class Order(
         if (name.isBlank()) return ""
         val role = created_by_role_label?.trim().orEmpty()
         return if (role.isNotBlank()) "$name（$role）" else name
+    }
+
+    /** 未取消且下单未超过 24 小时可撤销。 */
+    fun canCancel(): Boolean {
+        if (status == "CANCELLED") return false
+        val createdMs = parseCreatedAtMillis() ?: return false
+        return System.currentTimeMillis() - createdMs <= 24L * 60 * 60 * 1000
+    }
+
+    private fun parseCreatedAtMillis(): Long? {
+        val raw = created_at.trim().replace(' ', 'T').removeSuffix("Z")
+        if (raw.length < 19) return null
+        val head = raw.take(19)
+        return try {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+            sdf.isLenient = false
+            sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            sdf.parse(head)?.time
+        } catch (_: Exception) {
+            null
+        }
     }
 }
 

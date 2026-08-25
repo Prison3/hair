@@ -19,6 +19,7 @@ import com.hairclinic.app.data.Customer
 import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.databinding.ItemSimpleBinding
+import com.hairclinic.app.ui.billing.BillingFragment
 import kotlinx.coroutines.launch
 
 enum class BadgeTone { SUCCESS, GOLD, WARN, MUTED }
@@ -125,6 +126,17 @@ class CustomersFragment : Fragment() {
         findNavController().navigate(R.id.customerEditFragment, CustomerEditFragment.args(customer))
     }
 
+    private fun openBilling(customer: Customer) {
+        findNavController().navigate(
+            R.id.billingFragment,
+            BillingFragment.args(
+                customerId = customer.id ?: return,
+                name = customer.name,
+                phone = customer.phone,
+            ),
+        )
+    }
+
     private fun load() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -153,6 +165,8 @@ class CustomersFragment : Fragment() {
                             else -> if (c.gender == "女") BadgeTone.GOLD else BadgeTone.SUCCESS
                         },
                         onClick = { openEditor(c) },
+                        actionLabel = "开单",
+                        onAction = { openBilling(c) },
                     )
                 })
                 binding.emptyText.isVisible = list.isEmpty()

@@ -115,8 +115,14 @@ interface ApiService {
     @GET("api/orders")
     suspend fun listOrders(@Query("status") status: String? = null): List<Order>
 
+    @GET("api/orders/by-no/{orderNo}")
+    suspend fun getOrderByNo(@Path("orderNo") orderNo: String): Order
+
     @POST("api/orders")
     suspend fun createOrder(@Body body: OrderCreate): Order
+
+    @POST("api/orders/{id}/cancel")
+    suspend fun cancelOrder(@Path("id") id: Int): Order
 
     @PATCH("api/orders/{id}/status")
     suspend fun updateOrderStatus(@Path("id") id: Int, @Body body: OrderStatusUpdate): Order
