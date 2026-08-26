@@ -2,8 +2,10 @@ package com.hairclinic.app
 
 import android.os.Bundle
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Session
@@ -28,6 +30,14 @@ class MainActivity : AppCompatActivity() {
         applyRoleTabs()
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            if (destination.id == R.id.loginFragment && Session.token(this).isNotBlank()) {
+                navController.navigate(
+                    Session.homeDestination(this),
+                    null,
+                    NavOptions.Builder().setPopUpTo(R.id.loginFragment, true).build(),
+                )
+                return@addOnDestinationChangedListener
+            }
             if (!Session.isAllowedDestination(this, destination.id) && destination.id != R.id.loginFragment) {
                 navController.navigate(Session.homeDestination(this))
                 return@addOnDestinationChangedListener
@@ -48,8 +58,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val destId = navController.currentDestination?.id
+                val isRootTab = destId != null && destId in Session.allowedNavIds(this@MainActivity)
+                if (isRootTab && navController.previousBackStackEntry == null) {
+                    moveTaskToBack(true)
+                    return
+                }
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        })
+
         if (Session.token(this).isNotBlank() && navController.currentDestination?.id == R.id.loginFragment) {
-            navController.navigate(Session.homeDestination(this))
+            navController.navigate(
+                Session.homeDestination(this),
+                null,
+                NavOptions.Builder().setPopUpTo(R.id.loginFragment, true).build(),
+            )
         }
         refreshRole()
     }

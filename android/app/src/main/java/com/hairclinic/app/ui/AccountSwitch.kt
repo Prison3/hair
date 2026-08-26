@@ -31,7 +31,7 @@ private fun Fragment.goHomeAfterAccountChange() {
         Session.homeDestination(requireContext()),
         null,
         NavOptions.Builder()
-            .setPopUpTo(R.id.loginFragment, false)
+            .setPopUpTo(R.id.loginFragment, true)
             .setLaunchSingleTop(true)
             .build(),
     )

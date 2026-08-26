@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
@@ -81,7 +82,11 @@ class LoginFragment : Fragment() {
                         token.role,
                     )
                     (activity as? com.hairclinic.app.MainActivity)?.applyRoleTabs()
-                    findNavController().navigate(Session.homeDestination(requireContext()))
+                    findNavController().navigate(
+                        Session.homeDestination(requireContext()),
+                        null,
+                        NavOptions.Builder().setPopUpTo(R.id.loginFragment, true).build(),
+                    )
                 } catch (e: Exception) {
                     val msg = when (e) {
                         is UnknownHostException -> "地址不可达：主机名无法解析"
