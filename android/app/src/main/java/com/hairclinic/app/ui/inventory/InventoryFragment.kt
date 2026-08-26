@@ -34,7 +34,12 @@ class InventoryFragment : Fragment() {
         binding.pageTitle.text = "库存"
         binding.pageSubtitle.text = "各产品当前库存数量"
         binding.searchInput.hint = "搜索产品名"
-        binding.setupInventoryTabs(this, InventorySection.STOCK)
+        binding.setupInventoryTabs(
+            this,
+            InventorySection.STOCK,
+            addLabel = "入库",
+            onAdd = { findNavController().navigate(R.id.inboundFragment) },
+        )
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
         binding.searchBtn.setOnClickListener { load() }

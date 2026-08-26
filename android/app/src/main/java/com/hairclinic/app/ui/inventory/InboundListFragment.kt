@@ -43,12 +43,7 @@ class InboundListFragment : Fragment() {
         binding.pageSubtitle.text = "类型 / 编号 / 产品 / 原因分列展示"
         binding.searchInput.hint = "搜索产品名 / 编号 / 原因"
         binding.tableHeader.isVisible = false
-        binding.setupInventoryTabs(
-            this,
-            InventorySection.MOVEMENTS,
-            addLabel = "入库",
-            onAdd = { findNavController().navigate(R.id.inboundFragment) },
-        )
+        binding.setupInventoryTabs(this, InventorySection.MOVEMENTS)
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
         binding.searchBtn.setOnClickListener { load() }
