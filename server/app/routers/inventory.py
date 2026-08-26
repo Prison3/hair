@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from ..auth import require_admin
+from ..auth import get_current_admin, require_admin
 from ..database import get_db
 from ..models import Admin, OrderItem, StockItem, StockMovement, ProjectMedicine
 from ..schemas import StockInBody, StockItemIn, StockItemOut, StockMovementOut, StockOutBody
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 def list_inventory(
     q: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    _: Admin = Depends(require_admin),
+    _: Admin = Depends(get_current_admin),
 ):
     query = db.query(StockItem).order_by(StockItem.id.desc())
     if q:

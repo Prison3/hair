@@ -8,6 +8,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -20,6 +21,8 @@ import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.databinding.ItemSimpleBinding
 import com.hairclinic.app.ui.billing.BillingFragment
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class BadgeTone { SUCCESS, GOLD, WARN, MUTED }
@@ -92,6 +95,7 @@ class CustomersFragment : Fragment() {
     private var _binding: FragmentListBinding? = null
     private val binding get() = _binding!!
     private val adapter = SimpleAdapter()
+    private var searchJob: Job? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentListBinding.inflate(inflater, container, false)
@@ -104,9 +108,11 @@ class CustomersFragment : Fragment() {
         binding.addBtn.text = "添加客户"
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
-        binding.searchBtn.setOnClickListener { load() }
+        binding.searchBtn.isVisible = false
+        binding.searchInput.doAfterTextChanged { scheduleSearch() }
         binding.searchInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                searchJob?.cancel()
                 load()
                 true
             } else {
@@ -115,6 +121,14 @@ class CustomersFragment : Fragment() {
         }
         binding.addBtn.setOnClickListener { openEditor(null) }
         load()
+    }
+
+    private fun scheduleSearch() {
+        searchJob?.cancel()
+        searchJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(300)
+            load()
+        }
     }
 
     override fun onResume() {
@@ -170,7 +184,11 @@ class CustomersFragment : Fragment() {
                     )
                 })
                 binding.emptyText.isVisible = list.isEmpty()
-                binding.emptyText.text = "暂无客户，点击下方添加"
+                binding.emptyText.text = if (q.isNullOrBlank()) {
+                    "暂无客户，点击下方添加"
+                } else {
+                    "未找到匹配客户"
+                }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载失败", Toast.LENGTH_SHORT).show()
             }
@@ -178,6 +196,7 @@ class CustomersFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        searchJob?.cancel()
         super.onDestroyView()
         _binding = null
     }
