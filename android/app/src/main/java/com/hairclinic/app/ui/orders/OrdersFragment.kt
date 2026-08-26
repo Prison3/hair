@@ -15,6 +15,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Order
+import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.ui.customers.BadgeTone
 import com.hairclinic.app.ui.customers.Item
@@ -83,11 +84,13 @@ class OrdersFragment : Fragment() {
                         .filter { it.isNotBlank() }
                         .joinToString("  ")
                     val creator = o.creatorText()
+                    val orderTime = formatVisitTime(o.created_at).ifBlank { "—" }
                     val canCancel = o.canCancel()
                     Item(
                         title = o.order_no,
                         subtitle = buildString {
                             append(customer.ifBlank { "—" })
+                            append("\n下单 $orderTime")
                             append("\n¥${"%.2f".format(o.total_amount)} · ${detail.ifBlank { "无项目" }}")
                             if (creator.isNotBlank()) append("\n下单账号 $creator")
                         },

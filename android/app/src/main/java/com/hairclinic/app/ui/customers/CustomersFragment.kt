@@ -22,6 +22,8 @@ import com.hairclinic.app.databinding.FragmentListBinding
 import com.hairclinic.app.databinding.ItemSimpleBinding
 import com.hairclinic.app.ui.billing.BillingFragment
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -104,7 +106,7 @@ class CustomersFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.pageTitle.text = "客户"
-        binding.pageSubtitle.text = "资料、查询与回访"
+        binding.pageSubtitle.text = "共 0 位客户"
         binding.addBtn.text = "添加客户"
         binding.list.layoutManager = LinearLayoutManager(requireContext())
         binding.list.adapter = adapter
@@ -155,7 +157,18 @@ class CustomersFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val q = binding.searchInput.text?.toString()?.trim().orEmpty().ifBlank { null }
-                val list = ApiClient.get(requireContext()).listCustomers(q)
+                val (list, total) = coroutineScope {
+                    val listDeferred = async { ApiClient.get(requireContext()).listCustomers(q) }
+                    val totalDeferred = async {
+                        if (q.isNullOrBlank()) listDeferred.await() else ApiClient.get(requireContext()).listCustomers(null)
+                    }
+                    Pair(listDeferred.await(), totalDeferred.await())
+                }
+                binding.pageSubtitle.text = if (q.isNullOrBlank()) {
+                    "共 ${total.size} 位客户"
+                } else {
+                    "找到 ${list.size} 位 · 共 ${total.size} 位客户"
+                }
                 adapter.submit(list.map { c ->
                     val visitLine = when {
                         c.visit_count > 0 -> "回访 ${formatVisitTime(c.last_visited_at)} · ${c.visit_count} 次"

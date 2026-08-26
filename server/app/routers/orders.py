@@ -262,7 +262,7 @@ def list_orders(
     query = (
         db.query(Order)
         .options(*_order_load_options())
-        .order_by(Order.id.desc())
+        .order_by(Order.created_at.desc(), Order.id.desc())
     )
     if customer_id is not None:
         query = query.filter(Order.customer_id == customer_id)
@@ -310,7 +310,7 @@ def list_customer_orders(
         db.query(Order)
         .options(*_order_load_options())
         .filter(Order.customer_id == customer_id)
-        .order_by(Order.id.desc())
+        .order_by(Order.created_at.desc(), Order.id.desc())
         .all()
     )
     return [serialize_order(o) for o in orders]
