@@ -77,6 +77,14 @@
                     android:textSize="22sp"
                     android:textStyle="bold" />
                 <TextView
+                    android:id="@+id/salePriceText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="售价 ¥0"
+                    android:textColor="@color/paper2"
+                    android:textSize="14sp" />
+                <TextView
                     android:id="@+id/costPriceText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

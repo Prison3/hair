@@ -59,6 +59,7 @@ class ProductEditFragment : Fragment() {
                 name = name,
                 stock_qty = arguments?.getInt(ARG_STOCK) ?: 0,
                 cost_price = arguments?.getDouble(ARG_COST) ?: 0.0,
+                sale_price = arguments?.getDouble(ARG_SALE) ?: 0.0,
             )
         )
     }
@@ -115,12 +116,14 @@ class ProductEditFragment : Fragment() {
         const val ARG_NAME = "name"
         const val ARG_STOCK = "stock"
         const val ARG_COST = "cost"
+        const val ARG_SALE = "sale"
 
         fun args(item: StockItem? = null): Bundle = Bundle().apply {
             putInt(ARG_ID, item?.id ?: -1)
             putString(ARG_NAME, item?.name.orEmpty())
             putInt(ARG_STOCK, item?.stock_qty ?: 0)
             putDouble(ARG_COST, item?.cost_price ?: 0.0)
+            putDouble(ARG_SALE, item?.sale_price ?: 0.0)
         }
     }
 }

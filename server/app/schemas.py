@@ -275,6 +275,7 @@ class StockItemOut(BaseModel):
     unit: str = "个"
     stock_qty: int = 0
     cost_price: Decimal = Decimal("0")
+    sale_price: Decimal = Decimal("0")
     created_at: datetime
 
     @field_validator("spec", mode="before")
@@ -295,7 +296,8 @@ class StockInBody(BaseModel):
     spec: str = Field(default="", max_length=64)
     quantity: int = Field(ge=1)
     unit: str = Field(default="个", max_length=16)
-    unit_cost: Decimal = Field(ge=0)
+    unit_cost: Decimal = Field(ge=0, description="进货单价")
+    sale_price: Decimal = Field(ge=0, description="售价")
     moved_at: Optional[date] = None
 
     @field_validator("name")

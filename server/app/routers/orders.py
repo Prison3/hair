@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -28,10 +29,12 @@ router = APIRouter(prefix="/api", tags=["orders"])
 VALID_STATUSES = {"PENDING", "PAID", "DONE", "CANCELLED"}
 ACTIVE_STATUSES = {"PENDING", "PAID", "DONE"}
 CANCEL_WINDOW = timedelta(hours=24)
+TZ = ZoneInfo("Asia/Shanghai")
 
 
 def _order_no() -> str:
-    return datetime.utcnow().strftime("HC%Y%m%d%H%M%S%f")[:-3]
+    """订单号时间与 App 展示的下单时间一致（北京时间）。"""
+    return datetime.now(TZ).strftime("HC%Y%m%d%H%M%S%f")[:-3]
 
 
 def _order_load_options():
@@ -208,7 +211,7 @@ def _build_order_items(db: Session, body_items: List) -> List[OrderItem]:
                     project_id=None,
                     item_id=stock.id,
                     project_name=stock.name,
-                    unit_price=stock.cost_price or Decimal("0"),
+                    unit_price=stock.sale_price or stock.cost_price or Decimal("0"),
                     quantity=item.quantity,
                 )
             )

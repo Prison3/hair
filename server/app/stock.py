@@ -62,6 +62,7 @@ def get_or_create_item(db: Session, name: str, unit: str, spec: str) -> StockIte
         unit=unit or "个",
         stock_qty=0,
         cost_price=Decimal("0"),
+        sale_price=Decimal("0"),
     )
     db.add(item)
     db.flush()
@@ -72,6 +73,7 @@ def stock_in(
     db: Session,
     quantity: int,
     unit_cost: Decimal,
+    sale_price: Decimal = Decimal("0"),
     item_id: int | None = None,
     name: str = "",
     unit: str = "个",
@@ -98,6 +100,9 @@ def stock_in(
         item.cost_price = _money((old_cost * old_qty + cost * qty) / (old_qty + qty))
     elif cost > 0:
         item.cost_price = cost
+    sale = _money(sale_price or 0)
+    if sale > 0:
+        item.sale_price = sale
     item.stock_qty = old_qty + qty
     movement = StockMovement(
         item_id=item.id,

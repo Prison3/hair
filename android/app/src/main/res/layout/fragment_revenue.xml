@@ -152,7 +152,7 @@
                         android:layout_marginTop="2dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="入库 0 笔"
+                        android:text="销售成本"
                         android:textColor="@color/ink_soft"
                         android:textSize="10sp" />
                 </LinearLayout>

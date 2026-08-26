@@ -3,15 +3,15 @@ from __future__ import annotations
 from calendar import monthrange
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_admin
 from ..database import get_db
-from ..models import Admin, Order, StockMovement
+from ..models import Admin, Order, Project, StockItem, StockMovement
 from ..schemas import STOCK_IN, RevenueDayOut, RevenueSummaryOut
 
 router = APIRouter(prefix="/api/revenue", tags=["revenue"])
@@ -49,6 +49,48 @@ def _empty_day(d: date) -> Dict[str, object]:
     }
 
 
+def _load_stock_costs(db: Session, item_ids: Set[int]) -> Dict[int, Decimal]:
+    if not item_ids:
+        return {}
+    rows = db.query(StockItem).filter(StockItem.id.in_(item_ids)).all()
+    return {row.id: Decimal(str(row.cost_price or 0)) for row in rows}
+
+
+def _load_project_medicines(db: Session, project_ids: Set[int]) -> Dict[int, list]:
+    if not project_ids:
+        return {}
+    rows = (
+        db.query(Project)
+        .options(selectinload(Project.medicines))
+        .filter(Project.id.in_(project_ids))
+        .all()
+    )
+    return {row.id: list(row.medicines or []) for row in rows}
+
+
+def _order_cogs(
+    order: Order,
+    stock_costs: Dict[int, Decimal],
+    project_meds: Dict[int, list],
+) -> Decimal:
+    """订单销售成本：产品/项目耗材按进货单价（cost_price）汇总。"""
+    total = ZERO
+    for line in order.items or []:
+        qty = int(line.quantity or 0)
+        if qty <= 0:
+            continue
+        if line.item_id:
+            total += stock_costs.get(int(line.item_id), ZERO) * qty
+            continue
+        if line.project_id:
+            for med in project_meds.get(int(line.project_id), []):
+                med_qty = int(med.quantity or 0)
+                if med_qty <= 0:
+                    continue
+                total += stock_costs.get(int(med.item_id), ZERO) * med_qty * qty
+    return total
+
+
 @router.get("/summary", response_model=RevenueSummaryOut)
 def revenue_summary(
     year: Optional[int] = Query(None, ge=2000, le=2100),
@@ -72,17 +114,35 @@ def revenue_summary(
 
     orders = (
         db.query(Order)
+        .options(selectinload(Order.items))
         .filter(Order.status.in_(REVENUE_STATUSES))
         .filter(Order.created_at >= start_utc)
         .filter(Order.created_at < end_utc)
         .all()
     )
+
+    project_ids: Set[int] = set()
+    item_ids: Set[int] = set()
+    for order in orders:
+        for line in order.items or []:
+            if line.item_id:
+                item_ids.add(int(line.item_id))
+            elif line.project_id:
+                project_ids.add(int(line.project_id))
+
+    project_meds = _load_project_medicines(db, project_ids)
+    for meds in project_meds.values():
+        for med in meds:
+            item_ids.add(int(med.item_id))
+    stock_costs = _load_stock_costs(db, item_ids)
+
     for order in orders:
         day = _order_local_day(order.created_at)
         if day not in by_day:
             continue
         bucket = by_day[day]
         bucket["revenue"] = Decimal(str(bucket["revenue"])) + Decimal(str(order.total_amount or 0))
+        bucket["cost"] = Decimal(str(bucket["cost"])) + _order_cogs(order, stock_costs, project_meds)
         bucket["order_count"] = int(bucket["order_count"]) + 1
 
     inbounds = (
@@ -96,10 +156,7 @@ def revenue_summary(
         day = movement.moved_at
         if day not in by_day:
             continue
-        bucket = by_day[day]
-        line_cost = Decimal(str(movement.quantity or 0)) * Decimal(str(movement.unit_cost or 0))
-        bucket["cost"] = Decimal(str(bucket["cost"])) + line_cost
-        bucket["inbound_count"] = int(bucket["inbound_count"]) + 1
+        by_day[day]["inbound_count"] = int(by_day[day]["inbound_count"]) + 1
 
     days: List[RevenueDayOut] = []
     month_revenue = ZERO

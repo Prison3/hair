@@ -157,7 +157,7 @@ class RevenueFragment : Fragment() {
         binding.costText.text = costMoney(cost)
         binding.profitText.text = money(profit)
         binding.orderCountText.text = "订单 $orderCount 笔"
-        binding.inboundCountText.text = "入库 $inboundCount 笔"
+        binding.inboundCountText.text = if (inboundCount > 0) "入库 $inboundCount 笔" else "按进货价"
     }
 
     private fun money(value: Double): String = ProjectEditFragment.formatPrice(value)

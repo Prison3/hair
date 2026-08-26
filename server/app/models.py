@@ -86,6 +86,7 @@ class StockItem(Base):
     unit: Mapped[str] = mapped_column(String(16), default="个")
     stock_qty: Mapped[int] = mapped_column(Integer, default=0)
     cost_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    sale_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

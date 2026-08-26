@@ -34,6 +34,7 @@ class StockFragment : Fragment() {
         val name = arguments?.getString(ARG_NAME).orEmpty().ifBlank { "库存" }
         binding.pageTitle.text = name
         binding.stockQtyText.text = "库存 ${arguments?.getInt(ARG_STOCK) ?: 0}"
+        binding.salePriceText.text = "售价 ¥${ProjectEditFragment.formatPrice(arguments?.getDouble(ARG_SALE) ?: 0.0)}"
         binding.costPriceText.text = "进货价 ¥${ProjectEditFragment.formatPrice(arguments?.getDouble(ARG_COST) ?: 0.0)}"
         binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.inBtn.setOnClickListener {
@@ -82,6 +83,7 @@ class StockFragment : Fragment() {
     private fun bindItem(item: StockItem) {
         binding.pageTitle.text = item.name
         binding.stockQtyText.text = "库存 ${item.stock_qty}${item.unitLabel()}"
+        binding.salePriceText.text = item.saleText()
         binding.costPriceText.text = item.costText()
     }
 
@@ -127,6 +129,7 @@ class StockFragment : Fragment() {
         const val ARG_UNIT = "unit"
         const val ARG_STOCK = "stock"
         const val ARG_COST = "cost"
+        const val ARG_SALE = "sale"
 
         fun args(item: StockItem): Bundle = Bundle().apply {
             putInt(ARG_ID, item.id)
@@ -135,6 +138,7 @@ class StockFragment : Fragment() {
             putString(ARG_UNIT, item.unitLabel())
             putInt(ARG_STOCK, item.stock_qty)
             putDouble(ARG_COST, item.cost_price)
+            putDouble(ARG_SALE, item.sale_price)
         }
     }
 }

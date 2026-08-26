@@ -156,6 +156,7 @@ def inbound(
         name=body.name,
         quantity=body.quantity,
         unit_cost=body.unit_cost,
+        sale_price=body.sale_price,
         unit=body.unit,
         spec=body.spec,
         admin_id=admin.id,

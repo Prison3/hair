@@ -142,6 +142,7 @@ data class StockItem(
     val unit: String? = "个",
     val stock_qty: Int = 0,
     val cost_price: Double = 0.0,
+    val sale_price: Double = 0.0,
     val created_at: String? = null,
 ) {
     fun unitLabel(): String = stockUnitLabel(unit)
@@ -153,6 +154,18 @@ data class StockItem(
     fun costText(): String {
         val price = if (cost_price % 1.0 == 0.0) cost_price.toLong().toString() else "%.2f".format(cost_price)
         return "进货价 ¥$price"
+    }
+
+    fun saleText(): String {
+        val price = if (sale_price % 1.0 == 0.0) sale_price.toLong().toString() else "%.2f".format(sale_price)
+        return "售价 ¥$price"
+    }
+
+    /** 开单参考价：优先售价，未设置时回退进货价。 */
+    fun orderPrice(): Double = if (sale_price > 0) sale_price else cost_price
+
+    fun priceSummary(): String {
+        return if (sale_price > 0) "${saleText()} · ${costText()}" else costText()
     }
 }
 
@@ -167,6 +180,7 @@ data class StockInRequest(
     val quantity: Int,
     val unit: String = "个",
     val unit_cost: Double,
+    val sale_price: Double = 0.0,
     val moved_at: String? = null,
 )
 

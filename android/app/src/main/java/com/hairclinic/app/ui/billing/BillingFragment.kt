@@ -85,7 +85,7 @@ class BillingFragment : Fragment() {
     }
 
     private fun productMetaText(p: StockItem): String {
-        val price = "参考 ¥${"%.2f".format(p.cost_price)}"
+        val price = "参考 ¥${"%.2f".format(p.orderPrice())}"
         return "$price · ${p.stockText()}"
     }
 
@@ -242,7 +242,7 @@ class BillingFragment : Fragment() {
             val name = row.inputProduct.text?.toString()?.trim().orEmpty()
             val product = findProductByName(name) ?: continue
             val qty = row.productQty.text?.toString()?.toIntOrNull() ?: 1
-            total += product.cost_price * qty
+            total += product.orderPrice() * qty
         }
         return total
     }

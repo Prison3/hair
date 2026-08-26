@@ -43,6 +43,8 @@ def migrate_schema() -> None:
             conn.execute(text("ALTER TABLE stock_items ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
         if icols and "spec" not in icols:
             conn.execute(text("ALTER TABLE stock_items ADD COLUMN spec VARCHAR(64) DEFAULT ''"))
+        if icols and "sale_price" not in icols:
+            conn.execute(text("ALTER TABLE stock_items ADD COLUMN sale_price NUMERIC(12, 2) DEFAULT 0"))
         if icols:
             conn.execute(
                 text("UPDATE stock_items SET unit = '个' WHERE unit IS NULL OR unit = '' OR unit = '单位'")

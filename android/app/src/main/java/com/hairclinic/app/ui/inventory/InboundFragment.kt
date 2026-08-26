@@ -16,6 +16,7 @@ import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.StockInRequest
 import com.hairclinic.app.data.StockItem
 import com.hairclinic.app.databinding.FragmentInboundBinding
+import com.hairclinic.app.ui.projects.ProjectEditFragment
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -43,6 +44,7 @@ class InboundFragment : Fragment() {
         binding.inputProduct.setOnItemClickListener { _, _, position, _ ->
             selected = products.getOrNull(position)
             selectUnit(selected?.unit)
+            fillPrices()
             bindMeta()
         }
         loadProducts()
@@ -65,10 +67,21 @@ class InboundFragment : Fragment() {
                     binding.inputProduct.setText(selected!!.name, false)
                     selectUnit(selected!!.unit)
                 }
+                fillPrices()
                 bindMeta()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message ?: "加载产品失败", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun fillPrices() {
+        val item = selected ?: return
+        if (item.cost_price > 0) {
+            binding.inputUnitCost.setText(ProjectEditFragment.formatPrice(item.cost_price))
+        }
+        if (item.sale_price > 0) {
+            binding.inputSalePrice.setText(ProjectEditFragment.formatPrice(item.sale_price))
         }
     }
 
@@ -127,9 +140,14 @@ class InboundFragment : Fragment() {
             Toast.makeText(requireContext(), "请选择进货日期", Toast.LENGTH_SHORT).show()
             return
         }
-        val price = binding.inputPrice.text?.toString()?.toDoubleOrNull()
-        if (price == null) {
-            Toast.makeText(requireContext(), "请填写价格", Toast.LENGTH_SHORT).show()
+        val unitCost = binding.inputUnitCost.text?.toString()?.toDoubleOrNull()
+        if (unitCost == null) {
+            Toast.makeText(requireContext(), "请填写单价", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val salePrice = binding.inputSalePrice.text?.toString()?.toDoubleOrNull()
+        if (salePrice == null) {
+            Toast.makeText(requireContext(), "请填写售价", Toast.LENGTH_SHORT).show()
             return
         }
         val qty = binding.inputQty.text?.toString()?.toIntOrNull() ?: 0
@@ -146,7 +164,8 @@ class InboundFragment : Fragment() {
                         spec = item.spec.orEmpty(),
                         quantity = qty,
                         unit = selectedUnit(),
-                        unit_cost = price,
+                        unit_cost = unitCost,
+                        sale_price = salePrice,
                         moved_at = date,
                     )
                 )

@@ -65,7 +65,7 @@ class InventoryFragment : Fragment() {
                 adapter.submit(list.map { item ->
                     Item(
                         title = item.name,
-                        subtitle = item.costText(),
+                        subtitle = item.priceSummary(),
                         badge = item.stockText(),
                         badgeTone = if (item.stock_qty <= 0) BadgeTone.WARN else BadgeTone.SUCCESS,
                         onClick = { openStock(item) },
