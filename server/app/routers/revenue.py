@@ -97,7 +97,8 @@ def revenue_summary(
         if day not in by_day:
             continue
         bucket = by_day[day]
-        bucket["cost"] = Decimal(str(bucket["cost"])) + Decimal(str(movement.unit_cost or 0))
+        line_cost = Decimal(str(movement.quantity or 0)) * Decimal(str(movement.unit_cost or 0))
+        bucket["cost"] = Decimal(str(bucket["cost"])) + line_cost
         bucket["inbound_count"] = int(bucket["inbound_count"]) + 1
 
     days: List[RevenueDayOut] = []

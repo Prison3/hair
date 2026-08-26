@@ -5,14 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
+import android.widget.NumberPicker
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
-import com.hairclinic.app.data.RevenueDay
 import com.hairclinic.app.data.RevenueSummary
 import com.hairclinic.app.databinding.FragmentRevenueBinding
 import com.hairclinic.app.databinding.ItemCalendarDayBinding
@@ -27,7 +27,6 @@ class RevenueFragment : Fragment() {
     private var year: Int = Calendar.getInstance().get(Calendar.YEAR)
     private var month: Int = Calendar.getInstance().get(Calendar.MONTH) + 1
     private var summary: RevenueSummary? = null
-    private var selectedDay: Int? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentRevenueBinding.inflate(inflater, container, false)
@@ -35,20 +34,8 @@ class RevenueFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.prevMonthBtn.setOnClickListener {
-            shiftMonth(-1)
-            load()
-        }
-        binding.nextMonthBtn.setOnClickListener {
-            shiftMonth(1)
-            load()
-        }
+        binding.monthPicker.setOnClickListener { pickMonth() }
         binding.refreshBtn.setOnClickListener { load() }
-        binding.monthSummaryBtn.setOnClickListener {
-            selectedDay = null
-            summary?.let { showMonth(it) }
-            renderCalendar()
-        }
         load()
     }
 
@@ -57,13 +44,29 @@ class RevenueFragment : Fragment() {
         if (_binding != null) load()
     }
 
-    private fun shiftMonth(delta: Int) {
-        val cal = Calendar.getInstance()
-        cal.set(year, month - 1, 1)
-        cal.add(Calendar.MONTH, delta)
-        year = cal.get(Calendar.YEAR)
-        month = cal.get(Calendar.MONTH) + 1
-        selectedDay = null
+    private fun pickMonth() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_month_picker, null)
+        val yearPicker = dialogView.findViewById<NumberPicker>(R.id.yearPicker)
+        val monthPickerWheel = dialogView.findViewById<NumberPicker>(R.id.monthPickerWheel)
+        yearPicker.minValue = 2000
+        yearPicker.maxValue = 2100
+        yearPicker.value = year
+        yearPicker.wrapSelectorWheel = false
+        monthPickerWheel.minValue = 1
+        monthPickerWheel.maxValue = 12
+        monthPickerWheel.displayedValues = (1..12).map { "${it}月" }.toTypedArray()
+        monthPickerWheel.value = month
+        monthPickerWheel.wrapSelectorWheel = false
+        AlertDialog.Builder(requireContext())
+            .setTitle("选择月份")
+            .setView(dialogView)
+            .setPositiveButton("确定") { _, _ ->
+                year = yearPicker.value
+                month = monthPickerWheel.value
+                load()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun load() {
@@ -73,16 +76,9 @@ class RevenueFragment : Fragment() {
                 year = data.year
                 month = data.month
                 summary = data
-                if (selectedDay != null && data.days.none { it.day == selectedDay }) {
-                    selectedDay = null
-                }
-                binding.monthTitle.text = "${data.year}年${data.month}月"
-                binding.pageSubtitle.text = "${data.year}年${data.month}月 · 月历"
+                binding.monthPicker.text = "${data.year}年${data.month}月 · 月历"
+                showMonth(data)
                 renderCalendar()
-                if (selectedDay == null) showMonth(data) else {
-                    val day = data.days.firstOrNull { it.day == selectedDay }
-                    if (day != null) showDay(day) else showMonth(data)
-                }
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -126,41 +122,20 @@ class RevenueFragment : Fragment() {
             } else {
                 val day = dayMap[dayNum]
                 cell.dayNumber.text = dayNum.toString()
-                val revenue = day?.revenue ?: 0.0
-                cell.dayAmount.text = if (revenue > 0) shortMoney(revenue) else ""
-                val selected = selectedDay == dayNum
-                cell.dayCell.setBackgroundResource(
-                    if (selected) R.drawable.bg_chip else R.drawable.bg_form_panel,
-                )
-                cell.dayNumber.setTextColor(
-                    ContextCompat.getColor(
-                        requireContext(),
-                        if (selected) R.color.paper2 else R.color.ink,
-                    ),
-                )
+                val profit = day?.profit ?: 0.0
+                cell.dayAmount.text = shortMoney(profit)
+                cell.dayNumber.setTextColor(ContextCompat.getColor(requireContext(), R.color.ink))
                 cell.dayAmount.setTextColor(
                     ContextCompat.getColor(
                         requireContext(),
-                        if (selected) R.color.paper2 else if (revenue > 0) R.color.pine else R.color.ink_soft,
+                        when {
+                            profit > 0 -> R.color.gold
+                            profit < 0 -> R.color.cinnabar
+                            else -> R.color.ink_soft
+                        },
                     ),
                 )
-                cell.dayCell.setOnClickListener {
-                    selectedDay = dayNum
-                    if (day != null) showDay(day) else {
-                        showDay(
-                            RevenueDay(
-                                date = "%04d-%02d-%02d".format(data.year, data.month, dayNum),
-                                day = dayNum,
-                                revenue = 0.0,
-                                order_count = 0,
-                                cost = 0.0,
-                                inbound_count = 0,
-                                profit = 0.0,
-                            ),
-                        )
-                    }
-                    renderCalendar()
-                }
+                cell.dayCell.isClickable = false
             }
             binding.calendarGrid.addView(cell.root)
         }
@@ -168,14 +143,7 @@ class RevenueFragment : Fragment() {
 
     private fun showMonth(data: RevenueSummary) {
         binding.scopeTitle.text = "本月汇总"
-        binding.monthSummaryBtn.isVisible = false
         bindNumbers(data.revenue, data.order_count, data.cost, data.inbound_count, data.profit)
-    }
-
-    private fun showDay(day: RevenueDay) {
-        binding.scopeTitle.text = "${day.date} 当日"
-        binding.monthSummaryBtn.isVisible = true
-        bindNumbers(day.revenue, day.order_count, day.cost, day.inbound_count, day.profit)
     }
 
     private fun bindNumbers(
@@ -186,22 +154,27 @@ class RevenueFragment : Fragment() {
         profit: Double,
     ) {
         binding.revenueText.text = money(revenue)
-        binding.costText.text = money(cost)
+        binding.costText.text = costMoney(cost)
         binding.profitText.text = money(profit)
         binding.orderCountText.text = "订单 $orderCount 笔"
         binding.inboundCountText.text = "入库 $inboundCount 笔"
     }
 
-    private fun money(value: Double): String = "¥${ProjectEditFragment.formatPrice(value)}"
+    private fun money(value: Double): String = ProjectEditFragment.formatPrice(value)
+
+    private fun costMoney(value: Double): String {
+        if (value == 0.0) return "0"
+        return "-${money(value)}"
+    }
 
     private fun shortMoney(value: Double): String {
-        return if (value >= 10000) {
-            String.format("%.1fw", value / 10000.0)
-        } else if (value >= 1000) {
-            String.format("%.1fk", value / 1000.0)
-        } else {
-            ProjectEditFragment.formatPrice(value)
+        val abs = kotlin.math.abs(value)
+        val body = when {
+            abs >= 10000 -> String.format("%.1fw", abs / 10000.0)
+            abs >= 1000 -> String.format("%.1fk", abs / 1000.0)
+            else -> ProjectEditFragment.formatPrice(abs)
         }
+        return if (value < 0) "-$body" else body
     }
 
     override fun onDestroyView() {

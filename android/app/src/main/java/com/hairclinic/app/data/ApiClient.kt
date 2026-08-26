@@ -105,7 +105,7 @@ object Session {
     }
 
     fun homeDestination(context: Context): Int =
-        if (isAdmin(context)) R.id.projectsFragment else R.id.customersFragment
+        if (isAdmin(context)) R.id.revenueFragment else R.id.customersFragment
 
     fun allowedNavIds(context: Context): Set<Int> =
         if (isAdmin(context)) {
