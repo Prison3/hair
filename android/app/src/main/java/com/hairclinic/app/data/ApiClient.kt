@@ -117,7 +117,7 @@ object Session {
                 R.id.meFragment,
             )
         } else {
-            setOf(R.id.customersFragment, R.id.billingFragment, R.id.ordersFragment, R.id.meFragment)
+            setOf(R.id.customersFragment, R.id.ordersFragment, R.id.meFragment)
         }
 
     fun isAllowedDestination(context: Context, destId: Int): Boolean {
@@ -133,7 +133,10 @@ object Session {
                 R.id.staffEditFragment,
             )
         }
-        return destId in allowedNavIds(context) || destId == R.id.customerEditFragment
+        return destId in allowedNavIds(context) || destId in setOf(
+            R.id.customerEditFragment,
+            R.id.billingFragment,
+        )
     }
 
     fun saveBaseUrl(context: Context, url: String) {

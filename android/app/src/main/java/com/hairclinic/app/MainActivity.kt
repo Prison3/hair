@@ -38,7 +38,8 @@ class MainActivity : AppCompatActivity() {
                 destination.id == R.id.productEditFragment ||
                 destination.id == R.id.inboundFragment ||
                 destination.id == R.id.stockFragment ||
-                destination.id == R.id.staffEditFragment
+                destination.id == R.id.staffEditFragment ||
+                destination.id == R.id.billingFragment
             val showChrome = !isLogin
             binding.bottomNav.visibility = if (showChrome && !isEdit) View.VISIBLE else View.GONE
             binding.topBar.visibility = if (showChrome) View.VISIBLE else View.GONE

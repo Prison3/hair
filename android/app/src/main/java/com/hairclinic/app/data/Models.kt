@@ -199,7 +199,11 @@ data class StockMovement(
     fun qtyText(): String = "$quantity${unitLabel()}"
 }
 
-data class OrderItemIn(val project_id: Int, val quantity: Int = 1)
+data class OrderItemIn(
+    val project_id: Int? = null,
+    val item_id: Int? = null,
+    val quantity: Int = 1,
+)
 
 data class OrderCreate(
     val customer_id: Int,
@@ -210,7 +214,8 @@ data class OrderCreate(
 
 data class OrderItem(
     val id: Int,
-    val project_id: Int,
+    val project_id: Int? = null,
+    val item_id: Int? = null,
     val project_name: String,
     val unit_price: Double,
     val quantity: Int,

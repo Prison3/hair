@@ -17,23 +17,21 @@ import com.hairclinic.app.data.Customer
 import com.hairclinic.app.data.OrderCreate
 import com.hairclinic.app.data.OrderItemIn
 import com.hairclinic.app.data.Project
+import com.hairclinic.app.data.StockItem
 import com.hairclinic.app.databinding.FragmentBillingBinding
+import com.hairclinic.app.databinding.ItemBillingProductBinding
 import com.hairclinic.app.databinding.ItemBillingProjectBinding
 import com.hairclinic.app.ui.projects.ProjectEditFragment
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class BillingFragment : Fragment() {
     private var _binding: FragmentBillingBinding? = null
     private val binding get() = _binding!!
-    private var customers: List<Customer> = emptyList()
     private var projects: List<Project> = emptyList()
+    private var products: List<StockItem> = emptyList()
     private val projectRows = mutableListOf<ItemBillingProjectBinding>()
+    private val productRows = mutableListOf<ItemBillingProductBinding>()
     private var selectedCustomer: Customer? = null
-    private var searchJob: Job? = null
-    private var customerAdapter: ArrayAdapter<String>? = null
-    private var applyingPrefill = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentBillingBinding.inflate(inflater, container, false)
@@ -41,95 +39,41 @@ class BillingFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        binding.backBtn.setOnClickListener { findNavController().navigateUp() }
         binding.submitBtn.setOnClickListener { submit() }
         binding.addProjectBtn.setOnClickListener { addProjectRow() }
-        setupCustomerSearch()
-        applyPrefillCustomer()
+        binding.addProductBtn.setOnClickListener { addProductRow() }
+        if (!bindCustomerFromArgs()) {
+            Toast.makeText(requireContext(), "请从客户列表进入开单", Toast.LENGTH_SHORT).show()
+            findNavController().navigateUp()
+            return
+        }
         load()
     }
 
-    private fun applyPrefillCustomer() {
+    private fun bindCustomerFromArgs(): Boolean {
         val id = arguments?.getInt(ARG_CUSTOMER_ID, -1) ?: -1
-        if (id <= 0) return
+        if (id <= 0) return false
         val name = arguments?.getString(ARG_CUSTOMER_NAME).orEmpty()
         val phone = arguments?.getString(ARG_CUSTOMER_PHONE).orEmpty()
-        val customer = Customer(id = id, name = name.ifBlank { "客户$id" }, phone = phone.ifBlank { "-" })
-        selectedCustomer = customer
-        applyingPrefill = true
-        binding.inputCustomer.setText(customerLabel(customer), false)
-        applyingPrefill = false
-        binding.customerHint.text = "已选客户，可改搜其他客户"
-    }
-
-    private fun setupCustomerSearch() {
-        customerAdapter = ArrayAdapter(requireContext(), R.layout.item_spinner, mutableListOf())
-        binding.inputCustomer.setAdapter(customerAdapter)
-        binding.inputCustomer.threshold = 1
-        binding.inputCustomer.setOnItemClickListener { parent, _, position, _ ->
-            val label = parent.getItemAtPosition(position) as? String ?: return@setOnItemClickListener
-            selectedCustomer = customers.firstOrNull { customerLabel(it) == label }
-        }
-        binding.inputCustomer.doAfterTextChanged { editable ->
-            if (applyingPrefill) return@doAfterTextChanged
-            val text = editable?.toString().orEmpty()
-            if (selectedCustomer != null && customerLabel(selectedCustomer!!) != text.trim()) {
-                selectedCustomer = null
-            }
-            scheduleCustomerSearch(text.trim())
-        }
-    }
-
-    private fun scheduleCustomerSearch(q: String) {
-        searchJob?.cancel()
-        searchJob = viewLifecycleOwner.lifecycleScope.launch {
-            delay(220)
-            try {
-                val list = ApiClient.get(requireContext()).listCustomers(q.ifBlank { null })
-                customers = list
-                val labels = list.map { customerLabel(it) }
-                customerAdapter?.clear()
-                customerAdapter?.addAll(labels)
-                customerAdapter?.notifyDataSetChanged()
-                if (q.isNotBlank() && binding.inputCustomer.hasFocus()) {
-                    binding.inputCustomer.showDropDown()
-                }
-                selectedCustomer?.let { selected ->
-                    if (list.none { it.id == selected.id }) {
-                        customers = listOf(selected) + list
-                        customerAdapter?.clear()
-                        customerAdapter?.addAll(customers.map { customerLabel(it) })
-                        customerAdapter?.notifyDataSetChanged()
-                    }
-                }
-                binding.customerHint.text = when {
-                    selectedCustomer != null -> "已选 ${customerLabel(selectedCustomer!!)}"
-                    list.isEmpty() && q.isBlank() -> "暂无客户，请先在「客户」页录入"
-                    list.isEmpty() -> "未找到匹配客户"
-                    else -> "支持按姓名、手机号模糊匹配 · ${list.size} 人"
-                }
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), e.message ?: "客户搜索失败", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun customerLabel(c: Customer): String = "${c.name}（${c.phone}）"
-
-    private fun resolveCustomer(): Customer? {
-        selectedCustomer?.let { return it }
-        val text = binding.inputCustomer.text?.toString()?.trim().orEmpty()
-        if (text.isBlank()) return null
-        customers.firstOrNull { customerLabel(it) == text }?.let { return it }
-        val matches = customers.filter {
-            it.name.contains(text, ignoreCase = true) || it.phone.contains(text)
-        }
-        return matches.singleOrNull()
+        selectedCustomer = Customer(
+            id = id,
+            name = name.ifBlank { "客户$id" },
+            phone = phone.ifBlank { "-" },
+        )
+        binding.customerText.text = "${selectedCustomer!!.name}（${selectedCustomer!!.phone}）"
+        return true
     }
 
     private fun projectNames(): List<String> = projects.map { it.name }
 
+    private fun productNames(): List<String> = products.map { it.name }
+
     private fun findProjectByName(name: String): Project? =
         projects.firstOrNull { it.name == name }
+
+    private fun findProductByName(name: String): StockItem? =
+        products.firstOrNull { it.name == name }
 
     private fun projectMetaText(p: Project): String {
         val meds = p.medicineText()
@@ -138,6 +82,11 @@ class BillingFragment : Fragment() {
         } else {
             "¥${"%.2f".format(p.price)} · $meds"
         }
+    }
+
+    private fun productMetaText(p: StockItem): String {
+        val price = "参考 ¥${"%.2f".format(p.cost_price)}"
+        return "$price · ${p.stockText()}"
     }
 
     private fun addProjectRow(preset: Project? = null) {
@@ -172,17 +121,53 @@ class BillingFragment : Fragment() {
         updateTotal(syncDeal = true)
     }
 
+    private fun addProductRow(preset: StockItem? = null) {
+        if (products.isEmpty()) {
+            Toast.makeText(requireContext(), "暂无可用产品", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val row = ItemBillingProductBinding.inflate(layoutInflater, binding.productBox, false)
+        binding.productBox.addView(row.root)
+        productRows += row
+
+        val adapter = ArrayAdapter(requireContext(), R.layout.item_spinner, productNames())
+        row.inputProduct.setAdapter(adapter)
+        row.inputProduct.setOnItemClickListener { _, _, position, _ ->
+            val name = adapter.getItem(position) ?: return@setOnItemClickListener
+            val product = findProductByName(name)
+            row.productMeta.text = product?.let { productMetaText(it) }.orEmpty()
+            updateTotal(syncDeal = true)
+        }
+        row.productQty.doAfterTextChanged { updateTotal(syncDeal = true) }
+        row.removeBtn.setOnClickListener {
+            binding.productBox.removeView(row.root)
+            productRows.remove(row)
+            refreshProductEmpty()
+            updateTotal(syncDeal = true)
+        }
+
+        val initial = preset ?: products.first()
+        row.inputProduct.setText(initial.name, false)
+        row.productMeta.text = productMetaText(initial)
+        refreshProductEmpty()
+        updateTotal(syncDeal = true)
+    }
+
     private fun refreshProjectEmpty() {
         binding.projectEmpty.isVisible = projectRows.isEmpty()
     }
 
+    private fun refreshProductEmpty() {
+        binding.productEmpty.isVisible = productRows.isEmpty()
+    }
+
     private fun collectItems(): List<OrderItemIn>? {
-        if (projectRows.isEmpty()) {
-            Toast.makeText(requireContext(), "请添加项目", Toast.LENGTH_SHORT).show()
+        if (projectRows.isEmpty() && productRows.isEmpty()) {
+            Toast.makeText(requireContext(), "请添加项目或产品", Toast.LENGTH_SHORT).show()
             return null
         }
         val items = mutableListOf<OrderItemIn>()
-        val seen = mutableSetOf<Int>()
+        val seenProjects = mutableSetOf<Int>()
         for (row in projectRows) {
             val name = row.inputProject.text?.toString()?.trim().orEmpty()
             val project = findProjectByName(name)
@@ -190,16 +175,35 @@ class BillingFragment : Fragment() {
                 Toast.makeText(requireContext(), "请选择项目", Toast.LENGTH_SHORT).show()
                 return null
             }
-            if (!seen.add(project.id)) {
+            if (!seenProjects.add(project.id)) {
                 Toast.makeText(requireContext(), "同一项目请合并数量，勿重复添加", Toast.LENGTH_SHORT).show()
                 return null
             }
             val qty = row.projectQty.text?.toString()?.toIntOrNull() ?: 0
             if (qty <= 0) {
-                Toast.makeText(requireContext(), "请填写有效数量", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "请填写有效项目数量", Toast.LENGTH_SHORT).show()
                 return null
             }
-            items += OrderItemIn(project.id, qty)
+            items += OrderItemIn(project_id = project.id, quantity = qty)
+        }
+        val seenProducts = mutableSetOf<Int>()
+        for (row in productRows) {
+            val name = row.inputProduct.text?.toString()?.trim().orEmpty()
+            val product = findProductByName(name)
+            if (product == null) {
+                Toast.makeText(requireContext(), "请选择产品", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            if (!seenProducts.add(product.id)) {
+                Toast.makeText(requireContext(), "同一产品请合并数量，勿重复添加", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            val qty = row.productQty.text?.toString()?.toIntOrNull() ?: 0
+            if (qty <= 0) {
+                Toast.makeText(requireContext(), "请填写有效产品数量", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            items += OrderItemIn(item_id = product.id, quantity = qty)
         }
         return items
     }
@@ -209,14 +213,13 @@ class BillingFragment : Fragment() {
             try {
                 val api = ApiClient.get(requireContext())
                 projects = api.listProjects(activeOnly = true)
-                if (selectedCustomer == null) {
-                    scheduleCustomerSearch("")
-                } else {
-                    scheduleCustomerSearch(selectedCustomer!!.name)
-                }
+                products = api.listInventory()
                 binding.projectBox.removeAllViews()
+                binding.productBox.removeAllViews()
                 projectRows.clear()
+                productRows.clear()
                 refreshProjectEmpty()
+                refreshProductEmpty()
                 if (projects.isNotEmpty()) {
                     addProjectRow()
                 }
@@ -235,6 +238,12 @@ class BillingFragment : Fragment() {
             val qty = row.projectQty.text?.toString()?.toIntOrNull() ?: 1
             total += project.price * qty
         }
+        for (row in productRows) {
+            val name = row.inputProduct.text?.toString()?.trim().orEmpty()
+            val product = findProductByName(name) ?: continue
+            val qty = row.productQty.text?.toString()?.toIntOrNull() ?: 1
+            total += product.cost_price * qty
+        }
         return total
     }
 
@@ -249,9 +258,9 @@ class BillingFragment : Fragment() {
     }
 
     private fun submit() {
-        val customer = resolveCustomer()
-        if (customer == null) {
-            Toast.makeText(requireContext(), "请选择客户（可输入姓名或手机号搜索）", Toast.LENGTH_SHORT).show()
+        val customer = selectedCustomer
+        if (customer?.id == null) {
+            Toast.makeText(requireContext(), "请从客户列表进入开单", Toast.LENGTH_SHORT).show()
             return
         }
         val items = collectItems() ?: return
@@ -264,25 +273,14 @@ class BillingFragment : Fragment() {
             try {
                 val order = ApiClient.get(requireContext()).createOrder(
                     OrderCreate(
-                        customer_id = customer.id!!,
+                        customer_id = customer.id,
                         items = items,
                         deal_price = dealPrice,
                         remark = binding.remark.text?.toString()?.trim().orEmpty(),
                     )
                 )
                 Toast.makeText(requireContext(), "订单已生成 ${order.order_no}", Toast.LENGTH_LONG).show()
-                if ((arguments?.getInt(ARG_CUSTOMER_ID, -1) ?: -1) > 0) {
-                    findNavController().navigateUp()
-                    return@launch
-                }
-                selectedCustomer = null
-                binding.inputCustomer.setText("")
-                binding.projectBox.removeAllViews()
-                projectRows.clear()
-                if (projects.isNotEmpty()) addProjectRow()
-                binding.remark.setText("")
-                updateTotal(syncDeal = true)
-                scheduleCustomerSearch("")
+                findNavController().navigateUp()
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -294,7 +292,6 @@ class BillingFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        searchJob?.cancel()
         super.onDestroyView()
         _binding = null
     }

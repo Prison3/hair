@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_admin
 from ..database import get_db
-from ..models import Admin, StockItem, StockMovement, ProjectMedicine
+from ..models import Admin, OrderItem, StockItem, StockMovement, ProjectMedicine
 from ..schemas import StockInBody, StockItemIn, StockItemOut, StockMovementOut, StockOutBody
 from ..stock import delete_inbound, stock_in, stock_out
 
@@ -133,6 +133,8 @@ def delete_item(
     item = db.get(StockItem, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="产品不存在")
+    if db.query(OrderItem).filter(OrderItem.item_id == item_id).first():
+        raise HTTPException(status_code=400, detail="产品已用于订单，无法删除")
     if db.query(ProjectMedicine).filter(ProjectMedicine.item_id == item_id).first():
         raise HTTPException(status_code=400, detail="该产品已用于项目，无法删除")
     db.query(StockMovement).filter(StockMovement.item_id == item_id).delete(

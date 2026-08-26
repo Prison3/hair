@@ -76,19 +76,27 @@ def serialize_order(order: Order) -> OrderOut:
 
 
 def _collect_stock_needs(db: Session, body_items: List) -> Dict[int, int]:
-    """按项目关联产品汇总出库数量：产品用量 × 项目数量。"""
+    """汇总出库：项目关联产品用量×数量，以及直接选中的产品数量。"""
     needs: Dict[int, int] = defaultdict(int)
     for item in body_items:
-        project = (
-            db.query(Project)
-            .options(selectinload(Project.medicines))
-            .filter(Project.id == item.project_id)
-            .first()
-        )
-        if not project or not project.active:
-            raise HTTPException(status_code=400, detail=f"项目不可用: {item.project_id}")
-        for med in project.medicines or []:
-            needs[med.item_id] += int(med.quantity) * int(item.quantity)
+        qty = int(getattr(item, "quantity", 0) or 0)
+        project_id = getattr(item, "project_id", None)
+        product_id = getattr(item, "item_id", None)
+        if project_id is not None:
+            project = (
+                db.query(Project)
+                .options(selectinload(Project.medicines))
+                .filter(Project.id == project_id)
+                .first()
+            )
+            if not project or not project.active:
+                raise HTTPException(status_code=400, detail=f"项目不可用: {project_id}")
+            for med in project.medicines or []:
+                needs[med.item_id] += int(med.quantity) * qty
+        elif product_id is not None:
+            needs[int(product_id)] += qty
+        else:
+            raise HTTPException(status_code=400, detail="明细缺少项目或产品")
     return dict(needs)
 
 
@@ -178,17 +186,32 @@ def _deduct_order_stock(
 def _build_order_items(db: Session, body_items: List) -> List[OrderItem]:
     items: List[OrderItem] = []
     for item in body_items:
-        project = db.get(Project, item.project_id)
-        if not project or not project.active:
-            raise HTTPException(status_code=400, detail=f"项目不可用: {item.project_id}")
-        items.append(
-            OrderItem(
-                project_id=project.id,
-                project_name=project.name,
-                unit_price=project.price,
-                quantity=item.quantity,
+        if item.project_id is not None:
+            project = db.get(Project, item.project_id)
+            if not project or not project.active:
+                raise HTTPException(status_code=400, detail=f"项目不可用: {item.project_id}")
+            items.append(
+                OrderItem(
+                    project_id=project.id,
+                    item_id=None,
+                    project_name=project.name,
+                    unit_price=project.price,
+                    quantity=item.quantity,
+                )
             )
-        )
+        else:
+            stock = db.get(StockItem, item.item_id)
+            if not stock:
+                raise HTTPException(status_code=400, detail=f"产品不存在: {item.item_id}")
+            items.append(
+                OrderItem(
+                    project_id=None,
+                    item_id=stock.id,
+                    project_name=stock.name,
+                    unit_price=stock.cost_price or Decimal("0"),
+                    quantity=item.quantity,
+                )
+            )
     return items
 
 
@@ -402,10 +425,7 @@ def update_order_status(
         order.status = "CANCELLED"
     elif old == "CANCELLED":
         # 从已撤销恢复：重新扣库存
-        needs = _collect_stock_needs(
-            db,
-            [type("X", (), {"project_id": i.project_id, "quantity": i.quantity})() for i in order.items],
-        )
+        needs = _collect_stock_needs(db, order.items)
         stocks = _ensure_stock(db, needs)
         _deduct_order_stock(db, order.order_no, needs, stocks, admin.id)
         order.status = status_value

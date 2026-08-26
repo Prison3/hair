@@ -362,8 +362,17 @@ class StockMovementOut(BaseModel):
 
 
 class OrderItemIn(BaseModel):
-    project_id: int
+    project_id: Optional[int] = None
+    item_id: Optional[int] = None
     quantity: int = Field(default=1, ge=1)
+
+    @model_validator(mode="after")
+    def exactly_one_line(self):
+        has_project = self.project_id is not None
+        has_product = self.item_id is not None
+        if has_project == has_product:
+            raise ValueError("每条明细须指定项目或产品其一")
+        return self
 
 
 class OrderCreate(BaseModel):
@@ -383,7 +392,8 @@ class OrderItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    project_id: int
+    project_id: Optional[int] = None
+    item_id: Optional[int] = None
     project_name: str
     unit_price: Decimal
     quantity: int

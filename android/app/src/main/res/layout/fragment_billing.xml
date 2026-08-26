@@ -12,21 +12,39 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="serif"
-            android:text="开单"
-            android:textColor="@color/pine"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageButton
+                android:id="@+id/backBtn"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="返回"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_nav_back"
+                app:tint="@color/pine" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:fontFamily="serif"
+                android:text="开单"
+                android:textColor="@color/pine"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="14dp"
-            android:text="选择客户与植发项目生成订单"
+            android:text="为当前客户选择项目、产品并生成订单"
             android:textColor="@color/ink_soft"
             android:textSize="13sp" />
 
@@ -45,34 +63,18 @@
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.XinShang.TextInput"
+            <TextView
+                android:id="@+id/customerText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:hint="输入姓名或手机号搜索"
-                app:endIconMode="clear_text">
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                    android:id="@+id/inputCustomer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:completionThreshold="1"
-                    android:imeOptions="actionDone"
-                    android:inputType="text"
-                    android:minHeight="56dp"
-                    android:paddingVertical="14dp"
-                    android:textColor="@color/ink"
-                    android:textSize="16sp" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <TextView
-                android:id="@+id/customerHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="支持按姓名、手机号模糊匹配"
-                android:textColor="@color/ink_soft"
-                android:textSize="12sp" />
+                android:background="@drawable/bg_input"
+                android:minHeight="56dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="14dp"
+                android:textColor="@color/ink"
+                android:textSize="16sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -115,6 +117,50 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="点击右上角添加项目"
+                android:textColor="@color/ink_soft"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="产品"
+                    android:textColor="@color/ink"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/addProductBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:text="添加"
+                    android:textColor="@color/pine"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/productBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/productEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="点击右上角添加产品"
                 android:textColor="@color/ink_soft"
                 android:textSize="12sp" />
 

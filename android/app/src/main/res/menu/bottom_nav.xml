@@ -13,10 +13,6 @@
         android:icon="@drawable/ic_nav_inventory"
         android:title="@string/nav_inventory" />
     <item
-        android:id="@+id/billingFragment"
-        android:icon="@drawable/ic_nav_billing"
-        android:title="@string/nav_billing" />
-    <item
         android:id="@+id/ordersFragment"
         android:icon="@drawable/ic_nav_orders"
         android:title="@string/nav_orders" />

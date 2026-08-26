@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_input"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.XinShang.TextInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="选择产品"
+            app:endIconMode="dropdown_menu">
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/inputProduct"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:minHeight="52dp"
+                android:paddingVertical="12dp"
+                android:textColor="@color/ink"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/removeBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="10dp"
+            android:text="删除"
+            android:textColor="@color/cinnabar"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/productMeta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/ink_soft"
+            android:textSize="13sp" />
+
+        <EditText
+            android:id="@+id/productQty"
+            android:layout_width="80dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_chip"
+            android:gravity="center"
+            android:hint="数量"
+            android:inputType="number"
+            android:paddingHorizontal="8dp"
+            android:text="1"
+            android:textColor="@color/ink"
+            android:textColorHint="@color/ink_soft"
+            android:textSize="15sp" />
+    </LinearLayout>
+</LinearLayout>

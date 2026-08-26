@@ -62,6 +62,40 @@ def migrate_schema() -> None:
             conn.execute(text("ALTER TABLE admins ADD COLUMN role VARCHAR(16) DEFAULT 'admin'"))
         if acols:
             conn.execute(text("UPDATE admins SET role = 'admin' WHERE role IS NULL OR role = ''"))
+        ocols = [row[1] for row in conn.execute(text("PRAGMA table_info(order_items)")).fetchall()]
+        if ocols and "item_id" not in ocols:
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE order_items_new (
+                        id INTEGER PRIMARY KEY,
+                        order_id INTEGER NOT NULL,
+                        project_id INTEGER,
+                        item_id INTEGER,
+                        project_name VARCHAR(128) NOT NULL,
+                        unit_price NUMERIC(12, 2) NOT NULL,
+                        quantity INTEGER DEFAULT 1,
+                        FOREIGN KEY(order_id) REFERENCES orders(id),
+                        FOREIGN KEY(project_id) REFERENCES projects(id),
+                        FOREIGN KEY(item_id) REFERENCES stock_items(id)
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO order_items_new
+                        (id, order_id, project_id, item_id, project_name, unit_price, quantity)
+                    SELECT id, order_id, project_id, NULL, project_name, unit_price, quantity
+                    FROM order_items
+                    """
+                )
+            )
+            conn.execute(text("DROP TABLE order_items"))
+            conn.execute(text("ALTER TABLE order_items_new RENAME TO order_items"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_order_items_id ON order_items (id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_order_items_order_id ON order_items (order_id)"))
 
 
 def seed_data() -> None:

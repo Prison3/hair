@@ -113,8 +113,10 @@ class OrderItem(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), nullable=False)
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
-    project_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    # 项目行：project_id；产品行：item_id；二者择一
+    project_id: Mapped[Optional[int]] = mapped_column(ForeignKey("projects.id"), nullable=True)
+    item_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stock_items.id"), nullable=True)
+    project_name: Mapped[str] = mapped_column(String(128), nullable=False)  # 展示名（项目或产品）
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
 
