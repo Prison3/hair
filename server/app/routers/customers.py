@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
-from ..auth import get_current_admin, role_label
+from ..auth import get_current_admin, is_admin, role_label
 from ..customer_photos import (
     delete_customer_photo_files,
     delete_photo_file,
@@ -143,7 +143,7 @@ def create_customer(
     admin: Admin = Depends(get_current_admin),
 ):
     data = body.model_dump()
-    if data.get("assigned_to") is None:
+    if not is_admin(admin) or data.get("assigned_to") is None:
         data["assigned_to"] = admin.id
     else:
         _validate_assigned_to(db, data["assigned_to"])
@@ -314,11 +314,15 @@ def update_customer(
     customer_id: int,
     body: CustomerUpdate,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
     customer = _get_customer(db, customer_id)
-    _validate_assigned_to(db, body.assigned_to)
-    for key, value in body.model_dump().items():
+    data = body.model_dump()
+    if not is_admin(admin):
+        data.pop("assigned_to", None)
+    else:
+        _validate_assigned_to(db, data.get("assigned_to"))
+    for key, value in data.items():
         setattr(customer, key, value)
     db.commit()
     customer = _get_customer(db, customer_id)

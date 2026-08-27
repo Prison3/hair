@@ -156,17 +156,6 @@ class StaffOptionOut(BaseModel):
     username: str
     role_label: str = ""
 
-    @field_validator("phone", mode="before")
-    @classmethod
-    def keep_phone(cls, value) -> str:
-        # 列表/详情不强制校验历史脏数据，避免整表 500
-        return (value or "").strip() if value is not None else ""
-
-    @field_validator("intention", mode="before")
-    @classmethod
-    def keep_intention(cls, value) -> str:
-        return (value or "").strip() if value is not None else ""
-
 
 class CustomerVisitIn(BaseModel):
     visited_at: datetime

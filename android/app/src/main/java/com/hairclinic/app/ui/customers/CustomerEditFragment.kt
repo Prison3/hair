@@ -17,12 +17,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputLayout
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Customer
 import com.hairclinic.app.data.CustomerPhoto
 import com.hairclinic.app.data.CustomerVisit
 import com.hairclinic.app.data.Order
+import com.hairclinic.app.data.Session
 import com.hairclinic.app.data.StaffOption
 import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.DialogVisitBinding
@@ -62,8 +64,11 @@ class CustomerEditFragment : Fragment() {
         binding.visitSection.isVisible = isEdit
         binding.orderSection.isVisible = isEdit
         binding.inputAssignee.keyListener = null
-        binding.inputAssignee.setOnItemClickListener { _, _, position, _ ->
-            selectedAssigneeId = staffOptions.getOrNull(position)?.id
+        applyAssigneeEditable(canEditAssignee())
+        if (canEditAssignee()) {
+            binding.inputAssignee.setOnItemClickListener { _, _, position, _ ->
+                selectedAssigneeId = staffOptions.getOrNull(position)?.id
+            }
         }
         loadStaffOptions()
         setupPhotoSection()
@@ -179,14 +184,34 @@ class CustomerEditFragment : Fragment() {
         }
     }
 
+    private fun canEditAssignee(): Boolean = Session.isAdmin(requireContext())
+
+    private fun applyAssigneeEditable(editable: Boolean) {
+        binding.assigneeLayout.hint = if (editable) "归属业务员（可选）" else "归属业务员"
+        binding.assigneeLayout.endIconMode = if (editable) {
+            TextInputLayout.END_ICON_DROPDOWN_MENU
+        } else {
+            TextInputLayout.END_ICON_NONE
+        }
+        binding.inputAssignee.isEnabled = editable
+        binding.inputAssignee.isFocusable = editable
+        binding.inputAssignee.isClickable = editable
+        if (!editable) {
+            binding.inputAssignee.setOnClickListener(null)
+            binding.inputAssignee.setOnItemClickListener(null)
+        }
+    }
+
     private fun loadStaffOptions() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 staffOptions = ApiClient.get(requireContext()).listCustomerStaffOptions()
-                val labels = staffOptions.map { it.label() }
-                binding.inputAssignee.setAdapter(
-                    ArrayAdapter(requireContext(), R.layout.item_spinner, labels),
-                )
+                if (canEditAssignee()) {
+                    val labels = staffOptions.map { it.label() }
+                    binding.inputAssignee.setAdapter(
+                        ArrayAdapter(requireContext(), R.layout.item_spinner, labels),
+                    )
+                }
                 val presetId = selectedAssigneeId
                     ?: arguments?.getInt(ARG_ASSIGNED_TO, -1)?.takeIf { it > 0 }
                 val preset = staffOptions.firstOrNull { it.id == presetId }

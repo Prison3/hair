@@ -222,6 +222,7 @@
             </LinearLayout>
 
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/assigneeLayout"
                 style="@style/Widget.XinShang.TextInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
