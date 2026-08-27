@@ -2,22 +2,28 @@ package com.hairclinic.app.ui.customers
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hairclinic.app.R
 import com.hairclinic.app.data.ApiClient
 import com.hairclinic.app.data.Customer
+import com.hairclinic.app.data.CustomerPhoto
 import com.hairclinic.app.data.CustomerVisit
 import com.hairclinic.app.data.Order
+import com.hairclinic.app.data.StaffOption
 import com.hairclinic.app.data.formatVisitTime
 import com.hairclinic.app.databinding.DialogVisitBinding
 import com.hairclinic.app.databinding.FragmentCustomerEditBinding
@@ -32,6 +38,17 @@ class CustomerEditFragment : Fragment() {
     private var customerId: Int = -1
     private val visits = mutableListOf<CustomerVisit>()
     private val orders = mutableListOf<Order>()
+    private var staffOptions: List<StaffOption> = emptyList()
+    private var selectedAssigneeId: Int? = null
+    private lateinit var beforePhotoAdapter: CustomerPhotoAdapter
+    private lateinit var afterPhotoAdapter: CustomerPhotoAdapter
+
+    private val pickBeforePhotos = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) uploadPhotos(PHOTO_BEFORE, uris)
+    }
+    private val pickAfterPhotos = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) uploadPhotos(PHOTO_AFTER, uris)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentCustomerEditBinding.inflate(inflater, container, false)
@@ -44,6 +61,12 @@ class CustomerEditFragment : Fragment() {
         binding.pageTitle.text = if (isEdit) "编辑客户" else "添加客户"
         binding.visitSection.isVisible = isEdit
         binding.orderSection.isVisible = isEdit
+        binding.inputAssignee.keyListener = null
+        binding.inputAssignee.setOnItemClickListener { _, _, position, _ ->
+            selectedAssigneeId = staffOptions.getOrNull(position)?.id
+        }
+        loadStaffOptions()
+        setupPhotoSection()
 
         if (isEdit) {
             binding.inputName.setText(arguments?.getString(ARG_NAME).orEmpty())
@@ -62,6 +85,8 @@ class CustomerEditFragment : Fragment() {
             }
             val birthday = arguments?.getString(ARG_BIRTHDAY).orEmpty()
             if (birthday.isNotBlank()) binding.inputBirthday.text = birthday
+            selectedAssigneeId = arguments?.getInt(ARG_ASSIGNED_TO, -1)?.takeIf { it > 0 }
+            showPhotoSection()
             loadVisits()
             loadOrders()
         }
@@ -73,6 +98,121 @@ class CustomerEditFragment : Fragment() {
         binding.addVisitBtn.setOnClickListener { showVisitDialog(null) }
         binding.billBtn.setOnClickListener { openBilling() }
         binding.billBtn.isVisible = isEdit
+        binding.addBeforePhotoBtn.setOnClickListener { pickPhotos(PHOTO_BEFORE) }
+        binding.addAfterPhotoBtn.setOnClickListener { pickPhotos(PHOTO_AFTER) }
+    }
+
+    private fun setupPhotoSection() {
+        beforePhotoAdapter = CustomerPhotoAdapter { confirmDeletePhoto(it) }
+        afterPhotoAdapter = CustomerPhotoAdapter { confirmDeletePhoto(it) }
+        binding.beforePhotoList.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.afterPhotoList.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.beforePhotoList.adapter = beforePhotoAdapter
+        binding.afterPhotoList.adapter = afterPhotoAdapter
+    }
+
+    private fun showPhotoSection() {
+        binding.photoSection.isVisible = customerId > 0
+        if (customerId > 0) loadPhotos()
+    }
+
+    private fun pickPhotos(kind: String) {
+        if (customerId <= 0) {
+            Toast.makeText(requireContext(), "请先保存客户", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (kind == PHOTO_BEFORE) pickBeforePhotos.launch("image/*")
+        else pickAfterPhotos.launch("image/*")
+    }
+
+    private fun loadPhotos() {
+        if (customerId <= 0) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val api = ApiClient.get(requireContext())
+                val before = api.listCustomerPhotos(customerId, PHOTO_BEFORE)
+                val after = api.listCustomerPhotos(customerId, PHOTO_AFTER)
+                beforePhotoAdapter.submit(before)
+                afterPhotoAdapter.submit(after)
+                binding.beforePhotoEmpty.isVisible = before.isEmpty()
+                binding.afterPhotoEmpty.isVisible = after.isEmpty()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "照片加载失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun uploadPhotos(kind: String, uris: List<Uri>) {
+        if (customerId <= 0) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                uris.forEach { uri ->
+                    ApiClient.uploadCustomerPhoto(requireContext(), customerId, kind, uri)
+                }
+                Toast.makeText(requireContext(), "照片已上传", Toast.LENGTH_SHORT).show()
+                loadPhotos()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "上传失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun confirmDeletePhoto(photo: CustomerPhoto) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("删除照片")
+            .setMessage("确定删除这张照片？")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("删除") { _, _ -> deletePhoto(photo) }
+            .show()
+    }
+
+    private fun deletePhoto(photo: CustomerPhoto) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                ApiClient.get(requireContext()).deleteCustomerPhoto(customerId, photo.id)
+                loadPhotos()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "删除失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun loadStaffOptions() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                staffOptions = ApiClient.get(requireContext()).listCustomerStaffOptions()
+                val labels = staffOptions.map { it.label() }
+                binding.inputAssignee.setAdapter(
+                    ArrayAdapter(requireContext(), R.layout.item_spinner, labels),
+                )
+                val presetId = selectedAssigneeId
+                    ?: arguments?.getInt(ARG_ASSIGNED_TO, -1)?.takeIf { it > 0 }
+                val preset = staffOptions.firstOrNull { it.id == presetId }
+                if (preset != null) {
+                    binding.inputAssignee.setText(preset.label(), false)
+                    selectedAssigneeId = preset.id
+                } else {
+                    val presetName = arguments?.getString(ARG_ASSIGNED_TO_NAME).orEmpty()
+                    val byName = staffOptions.firstOrNull { it.username == presetName }
+                    if (byName != null) {
+                        binding.inputAssignee.setText(byName.label(), false)
+                        selectedAssigneeId = byName.id
+                    } else if (customerId <= 0) {
+                        val me = ApiClient.get(requireContext()).me()
+                        val current = staffOptions.firstOrNull { it.id == me.id }
+                            ?: staffOptions.firstOrNull { it.username == me.username }
+                        if (current != null) {
+                            binding.inputAssignee.setText(current.label(), false)
+                            selectedAssigneeId = current.id
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message ?: "加载业务员失败", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun openBilling() {
@@ -97,6 +237,7 @@ class CustomerEditFragment : Fragment() {
         if (_binding != null && customerId > 0) {
             loadOrders()
             loadVisits()
+            loadPhotos()
         }
     }
 
@@ -327,6 +468,10 @@ class CustomerEditFragment : Fragment() {
         }
         val birthday = binding.inputBirthday.text?.toString()?.trim().orEmpty()
             .takeIf { it.matches(Regex("""\d{4}-\d{2}-\d{2}""")) }
+        val assigneeId = binding.inputAssignee.text?.toString()?.trim().orEmpty().let { text ->
+            if (text.isBlank()) null else selectedAssigneeId
+                ?: staffOptions.firstOrNull { it.label() == text }?.id
+        }
         val body = Customer(
             id = customerId.takeIf { it > 0 },
             name = name,
@@ -337,6 +482,7 @@ class CustomerEditFragment : Fragment() {
             address = binding.inputAddress.text?.toString()?.trim().orEmpty(),
             intention = intention,
             notes = binding.inputNotes.text?.toString()?.trim().orEmpty(),
+            assigned_to = assigneeId,
         )
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -351,6 +497,7 @@ class CustomerEditFragment : Fragment() {
                     binding.visitSection.isVisible = true
                     binding.orderSection.isVisible = true
                     binding.billBtn.isVisible = true
+                    showPhotoSection()
                     loadVisits()
                     loadOrders()
                 }
@@ -367,6 +514,8 @@ class CustomerEditFragment : Fragment() {
 
     companion object {
         private val PHONE_PATTERN = Regex("""^1[3-9]\d{9}$""")
+        const val PHOTO_BEFORE = "BEFORE"
+        const val PHOTO_AFTER = "AFTER"
 
         const val ARG_ID = "customer_id"
         const val ARG_NAME = "name"
@@ -377,6 +526,8 @@ class CustomerEditFragment : Fragment() {
         const val ARG_ADDRESS = "address"
         const val ARG_INTENTION = "intention"
         const val ARG_NOTES = "notes"
+        const val ARG_ASSIGNED_TO = "assigned_to"
+        const val ARG_ASSIGNED_TO_NAME = "assigned_to_name"
 
         fun args(customer: Customer? = null): Bundle = Bundle().apply {
             putInt(ARG_ID, customer?.id ?: -1)
@@ -388,6 +539,8 @@ class CustomerEditFragment : Fragment() {
             putString(ARG_ADDRESS, customer?.address.orEmpty())
             putString(ARG_INTENTION, customer?.intention.orEmpty())
             putString(ARG_NOTES, customer?.notes.orEmpty())
+            putInt(ARG_ASSIGNED_TO, customer?.assigned_to ?: -1)
+            putString(ARG_ASSIGNED_TO_NAME, customer?.assigned_to_username.orEmpty())
         }
 
         fun parseVisitCal(raw: String?): Calendar {

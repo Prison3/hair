@@ -62,9 +62,39 @@ data class Customer(
     val address: String = "",
     val intention: String = "",
     val notes: String = "",
+    val assigned_to: Int? = null,
+    val assigned_to_username: String? = null,
+    val assigned_to_role_label: String? = null,
     val created_at: String? = null,
     val last_visited_at: String? = null,
     val visit_count: Int = 0,
+) {
+    fun assigneeText(): String {
+        val name = assigned_to_username?.trim().orEmpty()
+        if (name.isBlank()) return ""
+        val role = assigned_to_role_label?.trim().orEmpty()
+        return if (role.isBlank()) name else "$name（$role）"
+    }
+}
+
+data class StaffOption(
+    val id: Int,
+    val username: String,
+    val role_label: String = "",
+) {
+    fun label(): String {
+        val role = role_label.trim()
+        return if (role.isBlank()) username else "$username（$role）"
+    }
+}
+
+data class CustomerPhoto(
+    val id: Int,
+    val customer_id: Int,
+    val kind: String,
+    val url: String,
+    val original_name: String = "",
+    val created_at: String? = null,
 )
 
 data class CustomerVisit(

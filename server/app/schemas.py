@@ -110,6 +110,7 @@ class CustomerBase(BaseModel):
     address: str = Field(default="", max_length=255)
     intention: str = Field(default="", max_length=16)
     notes: str = ""
+    assigned_to: Optional[int] = None
 
     @field_validator("wechat", "address", "notes", mode="before")
     @classmethod
@@ -146,6 +147,14 @@ class CustomerOut(CustomerBase):
     created_at: datetime
     last_visited_at: Optional[datetime] = None
     visit_count: int = 0
+    assigned_to_username: str = ""
+    assigned_to_role_label: str = ""
+
+
+class StaffOptionOut(BaseModel):
+    id: int
+    username: str
+    role_label: str = ""
 
     @field_validator("phone", mode="before")
     @classmethod
@@ -181,6 +190,17 @@ class CustomerVisitOut(BaseModel):
     customer_id: int
     visited_at: datetime
     content: str = ""
+    created_at: datetime
+
+
+class CustomerPhotoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    customer_id: int
+    kind: str
+    url: str
+    original_name: str = ""
     created_at: datetime
 
 

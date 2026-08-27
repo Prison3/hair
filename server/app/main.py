@@ -6,8 +6,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from .auth import ROLE_ADMIN, ROLE_MANAGER, hash_password
+from .customer_photos import ensure_upload_root
 from .database import Base, SessionLocal, engine
-from .models import Admin, Project
+from .models import Admin
 from .stock import backfill_inbound_nos
 from .routers import app_release, auth, customers, inventory, orders, projects, revenue
 
@@ -24,6 +25,8 @@ def migrate_schema() -> None:
             conn.execute(text("ALTER TABLE customers ADD COLUMN address VARCHAR(255) DEFAULT ''"))
         if cols and "intention" not in cols:
             conn.execute(text("ALTER TABLE customers ADD COLUMN intention VARCHAR(16) DEFAULT ''"))
+        if cols and "assigned_to" not in cols:
+            conn.execute(text("ALTER TABLE customers ADD COLUMN assigned_to INTEGER REFERENCES admins(id)"))
         pcols = [row[1] for row in conn.execute(text("PRAGMA table_info(projects)")).fetchall()]
         if pcols and "unit" not in pcols:
             conn.execute(text("ALTER TABLE projects ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))
@@ -122,35 +125,6 @@ def seed_data() -> None:
                     role=ROLE_MANAGER,
                 )
             )
-        if db.query(Project).count() == 0:
-            db.add_all(
-                [
-                    Project(
-                        name="前额植发基础套餐",
-                        description="适合轻度发际线后退",
-                        price=12800,
-                        graft_count=1500,
-                        unit="次",
-                        active=True,
-                    ),
-                    Project(
-                        name="头顶加密套餐",
-                        description="头顶稀疏区域加密",
-                        price=16800,
-                        graft_count=2000,
-                        unit="次",
-                        active=True,
-                    ),
-                    Project(
-                        name="全头植发尊享套餐",
-                        description="大面积脱发综合方案",
-                        price=29800,
-                        graft_count=4000,
-                        unit="次",
-                        active=True,
-                    ),
-                ]
-            )
         db.commit()
     finally:
         db.close()
@@ -161,6 +135,7 @@ def create_app() -> FastAPI:
     migrate_schema()
     Base.metadata.create_all(bind=engine)
     backfill_inbound_nos()
+    ensure_upload_root()
     seed_data()
 
     app = FastAPI(title="心尚植发", version="1.0.0")

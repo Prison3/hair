@@ -1,13 +1,19 @@
 package com.hairclinic.app.data
 
 import android.content.Context
+import coil.ImageLoader
 import com.hairclinic.app.BuildConfig
 import com.hairclinic.app.R
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 object Session {
@@ -187,10 +193,87 @@ object Session {
 object ApiClient {
     @Volatile private var api: ApiService? = null
     @Volatile private var boundUrl: String? = null
+    @Volatile private var httpClient: OkHttpClient? = null
+    @Volatile private var imageLoader: ImageLoader? = null
 
     fun reset() {
         api = null
         boundUrl = null
+        httpClient = null
+        imageLoader = null
+    }
+
+    fun photoUrl(context: Context, path: String): String {
+        val base = Session.baseUrl(context)
+        val tail = path.trim().removePrefix("/")
+        return base + tail
+    }
+
+    fun httpClient(context: Context): OkHttpClient {
+        val appContext = context.applicationContext
+        val baseUrl = Session.baseUrl(appContext)
+        httpClient?.let { if (boundUrl == baseUrl) return it }
+        return buildClient(appContext).also { httpClient = it }
+    }
+
+    fun imageLoader(context: Context): ImageLoader {
+        val appContext = context.applicationContext
+        val baseUrl = Session.baseUrl(appContext)
+        imageLoader?.let { if (boundUrl == baseUrl) return it }
+        return ImageLoader.Builder(appContext)
+            .okHttpClient(httpClient(appContext))
+            .build()
+            .also { imageLoader = it }
+    }
+
+    private fun buildClient(appContext: Context): OkHttpClient {
+        val auth = Interceptor { chain ->
+            val token = Session.token(appContext)
+            val req = if (token.isNotBlank()) {
+                chain.request().newBuilder()
+                    .header("Authorization", "Bearer $token")
+                    .build()
+            } else chain.request()
+            chain.proceed(req)
+        }
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BASIC
+        }
+        return OkHttpClient.Builder()
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(auth)
+            .addInterceptor(logging)
+            .build()
+    }
+
+    suspend fun uploadCustomerPhoto(
+        context: Context,
+        customerId: Int,
+        kind: String,
+        uri: android.net.Uri,
+    ): CustomerPhoto {
+        val appContext = context.applicationContext
+        val resolver = appContext.contentResolver
+        val mime = resolver.getType(uri) ?: "image/jpeg"
+        val ext = when {
+            mime.contains("png") -> "png"
+            mime.contains("webp") -> "webp"
+            else -> "jpg"
+        }
+        val temp = File.createTempFile("upload_", ".$ext", appContext.cacheDir)
+        try {
+            resolver.openInputStream(uri)?.use { input ->
+                temp.outputStream().use { output -> input.copyTo(output) }
+            } ?: throw IllegalArgumentException("无法读取图片")
+            val fileBody = temp.asRequestBody(mime.toMediaTypeOrNull())
+            val filePart = MultipartBody.Part.createFormData("file", "photo.$ext", fileBody)
+            val kindBody = kind.toRequestBody("text/plain".toMediaTypeOrNull())
+            return get(appContext).uploadCustomerPhoto(customerId, kindBody, filePart)
+        } finally {
+            temp.delete()
+        }
     }
 
     fun get(context: Context): ApiService {
@@ -199,25 +282,7 @@ object ApiClient {
         api?.let { if (boundUrl == baseUrl) return it }
         synchronized(this) {
             api?.let { if (boundUrl == baseUrl) return it }
-            val auth = Interceptor { chain ->
-                val token = Session.token(appContext)
-                val req = if (token.isNotBlank()) {
-                    chain.request().newBuilder()
-                        .header("Authorization", "Bearer $token")
-                        .build()
-                } else chain.request()
-                chain.proceed(req)
-            }
-            val logging = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BASIC
-            }
-            val client = OkHttpClient.Builder()
-                .connectTimeout(8, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
-                .addInterceptor(auth)
-                .addInterceptor(logging)
-                .build()
+            val client = buildClient(appContext)
             val retrofit = Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .client(client)
@@ -226,6 +291,7 @@ object ApiClient {
             return retrofit.create(ApiService::class.java).also {
                 api = it
                 boundUrl = baseUrl
+                httpClient = client
             }
         }
     }

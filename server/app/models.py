@@ -32,12 +32,34 @@ class Customer(Base):
     address: Mapped[str] = mapped_column(String(255), default="")
     intention: Mapped[str] = mapped_column(String(16), default="")
     notes: Mapped[str] = mapped_column(Text, default="")
+    assigned_to: Mapped[Optional[int]] = mapped_column(ForeignKey("admins.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    assignee: Mapped[Optional["Admin"]] = relationship("Admin", foreign_keys=[assigned_to])
 
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="customer")
     visits: Mapped[List["CustomerVisit"]] = relationship(
         "CustomerVisit", back_populates="customer", cascade="all, delete-orphan"
     )
+    photos: Mapped[List["CustomerPhoto"]] = relationship(
+        "CustomerPhoto", back_populates="customer", cascade="all, delete-orphan", order_by="CustomerPhoto.id"
+    )
+
+
+class CustomerPhoto(Base):
+    __tablename__ = "customer_photos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    customer_id: Mapped[int] = mapped_column(
+        ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    stored_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    original_name: Mapped[str] = mapped_column(String(255), default="")
+    mime_type: Mapped[str] = mapped_column(String(64), default="image/jpeg")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    customer: Mapped["Customer"] = relationship("Customer", back_populates="photos")
 
 
 class Project(Base):

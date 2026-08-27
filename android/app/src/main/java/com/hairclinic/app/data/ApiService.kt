@@ -1,11 +1,15 @@
 package com.hairclinic.app.data
 
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -37,6 +41,9 @@ interface ApiService {
     @GET("api/customers")
     suspend fun listCustomers(@Query("q") q: String? = null): List<Customer>
 
+    @GET("api/customers/staff-options")
+    suspend fun listCustomerStaffOptions(): List<StaffOption>
+
     @POST("api/customers")
     suspend fun createCustomer(@Body body: Customer): Customer
 
@@ -61,6 +68,23 @@ interface ApiService {
 
     @DELETE("api/customers/{id}/visits/{visitId}")
     suspend fun deleteVisit(@Path("id") id: Int, @Path("visitId") visitId: Int)
+
+    @GET("api/customers/{id}/photos")
+    suspend fun listCustomerPhotos(
+        @Path("id") id: Int,
+        @Query("kind") kind: String? = null,
+    ): List<CustomerPhoto>
+
+    @Multipart
+    @POST("api/customers/{id}/photos")
+    suspend fun uploadCustomerPhoto(
+        @Path("id") customerId: Int,
+        @Part("kind") kind: RequestBody,
+        @Part file: MultipartBody.Part,
+    ): CustomerPhoto
+
+    @DELETE("api/customers/{id}/photos/{photoId}")
+    suspend fun deleteCustomerPhoto(@Path("id") id: Int, @Path("photoId") photoId: Int)
 
     @GET("api/customers/{id}/orders")
     suspend fun listCustomerOrders(@Path("id") id: Int): List<Order>

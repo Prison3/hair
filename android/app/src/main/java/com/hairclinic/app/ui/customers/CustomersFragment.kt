@@ -178,6 +178,8 @@ class CustomersFragment : Fragment() {
                         add(c.phone)
                         add("生日 ${c.birthday ?: "-"}")
                         if (c.intention.isNotBlank()) add("意向 ${c.intention}")
+                        val assignee = c.assigneeText()
+                        if (assignee.isNotBlank()) add("业务员 $assignee")
                         if (c.wechat.isNotBlank()) add("微信 ${c.wechat}")
                         if (c.address.isNotBlank()) add(c.address)
                     }.joinToString(" · ")

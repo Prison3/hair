@@ -2,19 +2,29 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from ..auth import get_current_admin
+from ..auth import get_current_admin, role_label
+from ..customer_photos import (
+    delete_customer_photo_files,
+    delete_photo_file,
+    photo_file_path,
+    save_upload,
+    validate_kind,
+)
 from ..database import get_db
-from ..models import Admin, Customer, CustomerVisit
+from ..models import Admin, Customer, CustomerPhoto, CustomerVisit
 from ..schemas import (
     CustomerCreate,
     CustomerOut,
+    CustomerPhotoOut,
     CustomerUpdate,
     CustomerVisitIn,
     CustomerVisitOut,
+    StaffOptionOut,
 )
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
@@ -37,6 +47,7 @@ def _visit_stats(db: Session, customer_ids: List[int]) -> Dict[int, Tuple[object
 
 
 def _customer_out(customer: Customer, last_visited_at=None, visit_count: int = 0) -> CustomerOut:
+    assignee = customer.assignee
     return CustomerOut(
         id=customer.id,
         name=customer.name,
@@ -47,17 +58,60 @@ def _customer_out(customer: Customer, last_visited_at=None, visit_count: int = 0
         address=customer.address or "",
         intention=customer.intention or "",
         notes=customer.notes,
+        assigned_to=customer.assigned_to,
         created_at=customer.created_at,
         last_visited_at=last_visited_at,
         visit_count=visit_count,
+        assigned_to_username=assignee.username if assignee else "",
+        assigned_to_role_label=role_label(assignee.role) if assignee else "",
     )
 
 
 def _get_customer(db: Session, customer_id: int) -> Customer:
-    customer = db.get(Customer, customer_id)
+    customer = (
+        db.query(Customer)
+        .options(joinedload(Customer.assignee))
+        .filter(Customer.id == customer_id)
+        .first()
+    )
     if not customer:
         raise HTTPException(status_code=404, detail="客户不存在")
     return customer
+
+
+def _validate_assigned_to(db: Session, assigned_to: Optional[int]) -> None:
+    if assigned_to is None:
+        return
+    staff = db.get(Admin, assigned_to)
+    if not staff:
+        raise HTTPException(status_code=400, detail="归属业务员不存在")
+
+
+def _photo_out(photo: CustomerPhoto) -> CustomerPhotoOut:
+    return CustomerPhotoOut(
+        id=photo.id,
+        customer_id=photo.customer_id,
+        kind=photo.kind,
+        url=f"/api/customers/{photo.customer_id}/photos/{photo.id}/content",
+        original_name=photo.original_name or "",
+        created_at=photo.created_at,
+    )
+
+
+@router.get("/staff-options", response_model=List[StaffOptionOut])
+def list_staff_options(
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    rows = db.query(Admin).order_by(Admin.id.asc()).all()
+    return [
+        StaffOptionOut(
+            id=row.id,
+            username=row.username,
+            role_label=role_label(row.role),
+        )
+        for row in rows
+    ]
 
 
 @router.get("", response_model=List[CustomerOut])
@@ -66,7 +120,11 @@ def list_customers(
     db: Session = Depends(get_db),
     _: Admin = Depends(get_current_admin),
 ):
-    query = db.query(Customer).order_by(Customer.id.desc())
+    query = (
+        db.query(Customer)
+        .options(joinedload(Customer.assignee))
+        .order_by(Customer.id.desc())
+    )
     if q:
         like = f"%{q.strip()}%"
         query = query.filter((Customer.name.like(like)) | (Customer.phone.like(like)))
@@ -82,13 +140,93 @@ def list_customers(
 def create_customer(
     body: CustomerCreate,
     db: Session = Depends(get_db),
-    _: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
-    customer = Customer(**body.model_dump())
+    data = body.model_dump()
+    if data.get("assigned_to") is None:
+        data["assigned_to"] = admin.id
+    else:
+        _validate_assigned_to(db, data["assigned_to"])
+    customer = Customer(**data)
     db.add(customer)
     db.commit()
     db.refresh(customer)
+    customer = _get_customer(db, customer.id)
     return _customer_out(customer)
+
+
+@router.get("/{customer_id}/photos", response_model=List[CustomerPhotoOut])
+def list_photos(
+    customer_id: int,
+    kind: Optional[str] = Query(None, description="BEFORE=手术前, AFTER=手术后"),
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    _get_customer(db, customer_id)
+    query = (
+        db.query(CustomerPhoto)
+        .filter(CustomerPhoto.customer_id == customer_id)
+        .order_by(CustomerPhoto.id.asc())
+    )
+    if kind:
+        query = query.filter(CustomerPhoto.kind == validate_kind(kind))
+    return [_photo_out(row) for row in query.all()]
+
+
+@router.post("/{customer_id}/photos", response_model=CustomerPhotoOut, status_code=status.HTTP_201_CREATED)
+async def upload_photo(
+    customer_id: int,
+    kind: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    _get_customer(db, customer_id)
+    kind_value = validate_kind(kind)
+    stored_name, original_name, mime_type = await save_upload(customer_id, kind_value, file)
+    photo = CustomerPhoto(
+        customer_id=customer_id,
+        kind=kind_value,
+        stored_name=stored_name,
+        original_name=original_name,
+        mime_type=mime_type,
+    )
+    db.add(photo)
+    db.commit()
+    db.refresh(photo)
+    return _photo_out(photo)
+
+
+@router.get("/{customer_id}/photos/{photo_id}/content")
+def get_photo_content(
+    customer_id: int,
+    photo_id: int,
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    photo = db.get(CustomerPhoto, photo_id)
+    if not photo or photo.customer_id != customer_id:
+        raise HTTPException(status_code=404, detail="照片不存在")
+    path = photo_file_path(customer_id, photo.stored_name)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="照片文件不存在")
+    return FileResponse(path, media_type=photo.mime_type or "image/jpeg")
+
+
+@router.delete("/{customer_id}/photos/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_photo(
+    customer_id: int,
+    photo_id: int,
+    db: Session = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    photo = db.get(CustomerPhoto, photo_id)
+    if not photo or photo.customer_id != customer_id:
+        raise HTTPException(status_code=404, detail="照片不存在")
+    delete_photo_file(customer_id, photo.stored_name)
+    db.delete(photo)
+    db.commit()
+    return None
 
 
 @router.get("/{customer_id}/visits", response_model=List[CustomerVisitOut])
@@ -179,10 +317,11 @@ def update_customer(
     _: Admin = Depends(get_current_admin),
 ):
     customer = _get_customer(db, customer_id)
+    _validate_assigned_to(db, body.assigned_to)
     for key, value in body.model_dump().items():
         setattr(customer, key, value)
     db.commit()
-    db.refresh(customer)
+    customer = _get_customer(db, customer_id)
     stats = _visit_stats(db, [customer.id])
     last, count = stats.get(customer.id, (None, 0))
     return _customer_out(customer, last, count)
@@ -198,6 +337,7 @@ def delete_customer(
     if customer.orders:
         raise HTTPException(status_code=400, detail="该客户已有订单，无法删除")
     db.query(CustomerVisit).filter(CustomerVisit.customer_id == customer_id).delete()
+    delete_customer_photo_files(customer_id)
     db.delete(customer)
     db.commit()
     return None
