@@ -79,7 +79,7 @@ class LoginFragment : Fragment() {
                         requireContext(),
                         token.access_token,
                         token.username.ifBlank { username },
-                        token.role,
+                        Session.normalizeRole(token.role, fallback = Session.ROLE_ADMIN),
                     )
                     (activity as? com.hairclinic.app.MainActivity)?.applyRoleTabs()
                     findNavController().navigate(

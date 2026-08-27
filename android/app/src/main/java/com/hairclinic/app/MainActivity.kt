@@ -92,7 +92,17 @@ class MainActivity : AppCompatActivity() {
             try {
                 val me = ApiClient.get(this@MainActivity).me()
                 Session.saveUsername(this@MainActivity, me.username)
-                Session.saveRole(this@MainActivity, me.role)
+                Session.saveRole(
+                    this@MainActivity,
+                    Session.normalizeRole(
+                        me.role,
+                        fallback = if (Session.isImpersonating(this@MainActivity)) {
+                            Session.ROLE_MANAGER
+                        } else {
+                            Session.ROLE_ADMIN
+                        },
+                    ),
+                )
                 applyRoleTabs()
                 binding.userChip.text = me.username
             } catch (_: Exception) {

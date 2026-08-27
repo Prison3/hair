@@ -58,10 +58,24 @@ object Session {
     fun role(context: Context): String =
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(KEY_ROLE, "") ?: ""
 
-    fun isAdmin(context: Context): Boolean {
-        val value = role(context)
-        return value.isBlank() || value == ROLE_ADMIN
+    fun normalizeRole(value: String?, fallback: String = ROLE_MANAGER): String {
+        val role = value?.trim().orEmpty()
+        return when (role) {
+            ROLE_ADMIN, ROLE_MANAGER -> role
+            else -> fallback
+        }
     }
+
+    fun isAdmin(context: Context): Boolean {
+        val value = role(context).trim()
+        if (value == ROLE_MANAGER) return false
+        if (value == ROLE_ADMIN) return true
+        // 旧会话可能没写入 role；管理员切到其他账号后绝不能再当成管理员
+        return value.isBlank() && !isImpersonating(context)
+    }
+
+    fun roleLabel(context: Context): String =
+        if (isAdmin(context)) "管理员" else "店长"
 
     fun saveAuth(context: Context, token: String, username: String, role: String) {
         context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
@@ -89,7 +103,7 @@ object Session {
             .edit()
             .putString(KEY_ORIGIN_TOKEN, token(context))
             .putString(KEY_ORIGIN_USERNAME, username(context))
-            .putString(KEY_ORIGIN_ROLE, role(context))
+            .putString(KEY_ORIGIN_ROLE, normalizeRole(role(context), fallback = ROLE_ADMIN))
             .apply()
     }
 

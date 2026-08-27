@@ -69,7 +69,7 @@ class MeFragment : Fragment() {
         binding.usernameText.text = name
         binding.avatarLetter.text = name.first().toString()
         val impersonating = Session.isImpersonating(requireContext())
-        val role = if (Session.isAdmin(requireContext())) "管理员" else "店长"
+        val role = Session.roleLabel(requireContext())
         val origin = Session.originUsername(requireContext())
         binding.roleText.text = if (impersonating) {
             "以 $role 身份登录"
@@ -77,11 +77,11 @@ class MeFragment : Fragment() {
             "心尚植发 · $role"
         }
         binding.accountHint.text = if (impersonating) {
-            "当前账号：$name（$role），由管理员 $origin 切换。可返回管理员，或修改当前账号资料。"
+            "当前账号：$name（$role），由管理员 $origin 切换。权限与该账号一致，可返回管理员，或修改当前账号资料。"
         } else {
             "当前账号：$name（$role）。可修改用户名和登录密码。"
         }
-        binding.switchAccountBtn.isVisible = Session.isAdmin(requireContext())
+        binding.switchAccountBtn.isVisible = Session.isAdmin(requireContext()) && !impersonating
         binding.returnAdminBtn.isVisible = impersonating
     }
 
@@ -139,7 +139,7 @@ class MeFragment : Fragment() {
                     .setTitle("切换登录账号")
                     .setItems(labels) { _, which ->
                         val staff = list.getOrNull(which) ?: return@setItems
-                        switchTo(staff.id, staff.username)
+                        switchTo(staff.id, staff.username, staff.role)
                     }
                     .setNegativeButton("取消", null)
                     .show()
@@ -149,12 +149,12 @@ class MeFragment : Fragment() {
         }
     }
 
-    private fun switchTo(staffId: Int, username: String) {
+    private fun switchTo(staffId: Int, username: String, role: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val token = ApiClient.get(requireContext()).loginAsStaff(staffId)
                 toast("已切换到 ${token.username.ifBlank { username }}")
-                enterAccount(token)
+                enterAccount(token, role)
             } catch (e: Exception) {
                 toast(apiErrorMessage(e))
             }

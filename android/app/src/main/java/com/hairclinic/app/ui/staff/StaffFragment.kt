@@ -106,7 +106,7 @@ class StaffFragment : Fragment() {
             try {
                 val token = ApiClient.get(requireContext()).loginAsStaff(staff.id)
                 toast("已切换到 ${token.username}")
-                enterAccount(token)
+                enterAccount(token, staff.role)
             } catch (e: Exception) {
                 toast(ProjectEditFragment.apiError(e, "切换失败"))
             }

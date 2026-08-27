@@ -8,17 +8,23 @@ import com.hairclinic.app.R
 import com.hairclinic.app.data.Session
 import com.hairclinic.app.data.TokenOut
 
-fun Fragment.enterAccount(token: TokenOut) {
+fun Fragment.enterAccount(token: TokenOut, expectedRole: String? = null) {
     val ctx = requireContext()
     Session.rememberOriginIfNeeded(ctx)
-    Session.saveAuth(ctx, token.access_token, token.username, token.role)
+    val role = Session.normalizeRole(
+        expectedRole?.takeIf { it.isNotBlank() } ?: token.role,
+        fallback = Session.ROLE_MANAGER,
+    )
+    Session.saveAuth(ctx, token.access_token, token.username, role)
     goHomeAfterAccountChange()
+    (activity as? MainActivity)?.refreshRole()
 }
 
 fun Fragment.returnToAdminAccount(): Boolean {
     val ctx = requireContext()
     if (!Session.restoreOrigin(ctx)) return false
     goHomeAfterAccountChange()
+    (activity as? MainActivity)?.refreshRole()
     return true
 }
 

@@ -188,17 +188,31 @@ class CustomerEditFragment : Fragment() {
 
     private fun applyAssigneeEditable(editable: Boolean) {
         binding.assigneeLayout.hint = if (editable) "归属业务员（可选）" else "归属业务员"
+        binding.assigneeLayout.isEnabled = true
+        binding.assigneeLayout.alpha = 1f
         binding.assigneeLayout.endIconMode = if (editable) {
             TextInputLayout.END_ICON_DROPDOWN_MENU
         } else {
             TextInputLayout.END_ICON_NONE
         }
-        binding.inputAssignee.isEnabled = editable
+        // 只读时不 disable，避免输入框变灰；拦截点击禁止下拉。
+        binding.inputAssignee.isEnabled = true
+        binding.inputAssignee.alpha = 1f
+        binding.inputAssignee.keyListener = null
+        binding.inputAssignee.setShowSoftInputOnFocus(false)
+        binding.inputAssignee.isCursorVisible = false
+        binding.inputAssignee.setTextColor(ContextCompat.getColor(requireContext(), R.color.ink))
         binding.inputAssignee.isFocusable = editable
+        binding.inputAssignee.isFocusableInTouchMode = editable
         binding.inputAssignee.isClickable = editable
-        if (!editable) {
-            binding.inputAssignee.setOnClickListener(null)
+        binding.inputAssignee.isLongClickable = editable
+        if (editable) {
+            binding.inputAssignee.setOnTouchListener(null)
+        } else {
+            binding.inputAssignee.setAdapter(null)
             binding.inputAssignee.setOnItemClickListener(null)
+            binding.inputAssignee.setOnClickListener(null)
+            binding.inputAssignee.setOnTouchListener { _, _ -> true }
         }
     }
 
