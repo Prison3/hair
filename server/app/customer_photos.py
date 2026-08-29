@@ -111,6 +111,33 @@ def extract_taken_at_utc(path: Path) -> datetime | None:
         return None
 
 
+def backfill_photo_taken_at() -> int:
+    """为旧照片补拍摄时间：优先文件 EXIF，否则用上传时间。"""
+    from .database import SessionLocal
+    from .models import CustomerPhoto
+
+    db = SessionLocal()
+    updated = 0
+    try:
+        rows = (
+            db.query(CustomerPhoto)
+            .filter(CustomerPhoto.taken_at.is_(None))
+            .order_by(CustomerPhoto.id.asc())
+            .all()
+        )
+        for photo in rows:
+            path = photo_file_path(photo.customer_id, photo.stored_name)
+            photo.taken_at = extract_taken_at_utc(path) or photo.created_at
+            updated += 1
+        if updated:
+            db.commit()
+        else:
+            db.rollback()
+    finally:
+        db.close()
+    return updated
+
+
 async def save_upload(customer_id: int, kind: str, upload: UploadFile) -> tuple[str, str, str]:
     ensure_upload_root()
     content_type = (upload.content_type or "").split(";", 1)[0].strip().lower()

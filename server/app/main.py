@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from .auth import ROLE_ADMIN, ROLE_MANAGER, hash_password
-from .customer_photos import ensure_upload_root
+from .customer_photos import backfill_photo_taken_at, ensure_upload_root
 from .database import Base, SessionLocal, engine
 from .models import Admin
 from .stock import backfill_inbound_nos
@@ -139,6 +139,7 @@ def create_app() -> FastAPI:
     Base.metadata.create_all(bind=engine)
     backfill_inbound_nos()
     ensure_upload_root()
+    backfill_photo_taken_at()
     seed_data()
 
     app = FastAPI(title="心尚植发", version="1.0.0")
