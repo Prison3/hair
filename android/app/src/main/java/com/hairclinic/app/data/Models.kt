@@ -68,6 +68,7 @@ data class Customer(
     val created_at: String? = null,
     val last_visited_at: String? = null,
     val visit_count: Int = 0,
+    val order_count: Int = 0,
 ) {
     fun assigneeText(): String {
         val name = assigned_to_username?.trim().orEmpty()

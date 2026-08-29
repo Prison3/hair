@@ -147,6 +147,7 @@ class CustomerOut(CustomerBase):
     created_at: datetime
     last_visited_at: Optional[datetime] = None
     visit_count: int = 0
+    order_count: int = 0
     assigned_to_username: str = ""
     assigned_to_role_label: str = ""
 

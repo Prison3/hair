@@ -19,7 +19,7 @@ from ..customer_photos import (
     validate_kind,
 )
 from ..database import get_db
-from ..models import Admin, Customer, CustomerPhoto, CustomerVisit
+from ..models import Admin, Customer, CustomerPhoto, CustomerVisit, Order
 from ..schemas import (
     CustomerCreate,
     CustomerOut,
@@ -49,7 +49,27 @@ def _visit_stats(db: Session, customer_ids: List[int]) -> Dict[int, Tuple[object
     return {cid: (last, count) for cid, last, count in rows}
 
 
-def _customer_out(customer: Customer, last_visited_at=None, visit_count: int = 0) -> CustomerOut:
+def _order_counts(db: Session, customer_ids: List[int]) -> Dict[int, int]:
+    if not customer_ids:
+        return {}
+    rows = (
+        db.query(Order.customer_id, func.count(Order.id))
+        .filter(
+            Order.customer_id.in_(customer_ids),
+            Order.status != "CANCELLED",
+        )
+        .group_by(Order.customer_id)
+        .all()
+    )
+    return {cid: int(count) for cid, count in rows}
+
+
+def _customer_out(
+    customer: Customer,
+    last_visited_at=None,
+    visit_count: int = 0,
+    order_count: int = 0,
+) -> CustomerOut:
     assignee = customer.assignee
     return CustomerOut(
         id=customer.id,
@@ -65,9 +85,17 @@ def _customer_out(customer: Customer, last_visited_at=None, visit_count: int = 0
         created_at=customer.created_at,
         last_visited_at=last_visited_at,
         visit_count=visit_count,
+        order_count=order_count,
         assigned_to_username=assignee.username if assignee else "",
         assigned_to_role_label=role_label(assignee.role) if assignee else "",
     )
+
+
+def _customer_out_with_stats(db: Session, customer: Customer) -> CustomerOut:
+    stats = _visit_stats(db, [customer.id])
+    last, visit_count = stats.get(customer.id, (None, 0))
+    order_count = _order_counts(db, [customer.id]).get(customer.id, 0)
+    return _customer_out(customer, last, visit_count, order_count)
 
 
 def _get_customer(db: Session, customer_id: int) -> Customer:
@@ -133,9 +161,15 @@ def list_customers(
         like = f"%{q.strip()}%"
         query = query.filter((Customer.name.like(like)) | (Customer.phone.like(like)))
     customers = query.all()
-    stats = _visit_stats(db, [c.id for c in customers])
+    ids = [c.id for c in customers]
+    stats = _visit_stats(db, ids)
+    orders = _order_counts(db, ids)
     return [
-        _customer_out(c, *stats.get(c.id, (None, 0)))
+        _customer_out(
+            c,
+            *stats.get(c.id, (None, 0)),
+            order_count=orders.get(c.id, 0),
+        )
         for c in customers
     ]
 
@@ -156,7 +190,7 @@ def create_customer(
     db.commit()
     db.refresh(customer)
     customer = _get_customer(db, customer.id)
-    return _customer_out(customer)
+    return _customer_out_with_stats(db, customer)
 
 
 @router.get("/{customer_id}/photos", response_model=List[CustomerPhotoOut])
@@ -318,9 +352,7 @@ def get_customer(
     _: Admin = Depends(get_current_admin),
 ):
     customer = _get_customer(db, customer_id)
-    stats = _visit_stats(db, [customer.id])
-    last, count = stats.get(customer.id, (None, 0))
-    return _customer_out(customer, last, count)
+    return _customer_out_with_stats(db, customer)
 
 
 @router.put("/{customer_id}", response_model=CustomerOut)
@@ -340,9 +372,7 @@ def update_customer(
         setattr(customer, key, value)
     db.commit()
     customer = _get_customer(db, customer_id)
-    stats = _visit_stats(db, [customer.id])
-    last, count = stats.get(customer.id, (None, 0))
-    return _customer_out(customer, last, count)
+    return _customer_out_with_stats(db, customer)
 
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)

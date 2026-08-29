@@ -34,6 +34,8 @@ data class Item(
     val subtitle: String = "",
     val badge: String = "",
     val badgeTone: BadgeTone = BadgeTone.SUCCESS,
+    /** 额外角标，样式与主 badge 一致（如客户列表的「单」「回」）。 */
+    val tags: List<Pair<String, BadgeTone>> = emptyList(),
     val clickable: Boolean = true,
     val onClick: () -> Unit = {},
     val actionLabel: String = "",
@@ -61,18 +63,11 @@ class SimpleAdapter : RecyclerView.Adapter<SimpleAdapter.VH>() {
         holder.binding.title.text = item.title
         holder.binding.subtitle.text = item.subtitle
         holder.binding.subtitle.isVisible = item.subtitle.isNotBlank()
-        holder.binding.badge.text = item.badge
-        holder.binding.badge.isVisible = item.badge.isNotBlank()
-        if (item.badge.isNotBlank()) {
-            val (bg, color) = when (item.badgeTone) {
-                BadgeTone.SUCCESS -> R.drawable.bg_badge to R.color.pine
-                BadgeTone.GOLD -> R.drawable.bg_badge_gold to R.color.gold
-                BadgeTone.WARN -> R.drawable.bg_badge_warn to R.color.cinnabar
-                BadgeTone.MUTED -> R.drawable.bg_badge_muted to R.color.ink_soft
-            }
-            holder.binding.badge.setBackgroundResource(bg)
-            holder.binding.badge.setTextColor(ContextCompat.getColor(ctx, color))
-        }
+        bindBadge(holder.binding.badge, item.badge, item.badgeTone, ctx)
+        val tag1 = item.tags.getOrNull(0)
+        val tag2 = item.tags.getOrNull(1)
+        bindBadge(holder.binding.badge2, tag1?.first.orEmpty(), tag1?.second ?: BadgeTone.SUCCESS, ctx)
+        bindBadge(holder.binding.badge3, tag2?.first.orEmpty(), tag2?.second ?: BadgeTone.SUCCESS, ctx)
         holder.binding.chevron.isVisible = item.clickable
         holder.binding.actionBtn.isVisible = item.onAction != null
         holder.binding.actionBtn.text = item.actionLabel.ifBlank { "登录" }
@@ -86,6 +81,25 @@ class SimpleAdapter : RecyclerView.Adapter<SimpleAdapter.VH>() {
         holder.binding.root.isClickable = item.clickable
         holder.binding.root.isFocusable = item.clickable
         holder.binding.root.setOnClickListener(if (item.clickable) ({ item.onClick() }) else null)
+    }
+
+    private fun bindBadge(
+        view: android.widget.TextView,
+        text: String,
+        tone: BadgeTone,
+        ctx: android.content.Context,
+    ) {
+        view.text = text
+        view.isVisible = text.isNotBlank()
+        if (text.isBlank()) return
+        val (bg, color) = when (tone) {
+            BadgeTone.SUCCESS -> R.drawable.bg_badge to R.color.pine
+            BadgeTone.GOLD -> R.drawable.bg_badge_gold to R.color.gold
+            BadgeTone.WARN -> R.drawable.bg_badge_warn to R.color.cinnabar
+            BadgeTone.MUTED -> R.drawable.bg_badge_muted to R.color.ink_soft
+        }
+        view.setBackgroundResource(bg)
+        view.setTextColor(ContextCompat.getColor(ctx, color))
     }
 
     override fun getItemCount() = items.size
@@ -183,15 +197,21 @@ class CustomersFragment : Fragment() {
                         if (c.wechat.isNotBlank()) add("微信 ${c.wechat}")
                         if (c.address.isNotBlank()) add(c.address)
                     }.joinToString(" · ")
+                    val intentionBadge = c.intention.ifBlank { c.gender.ifBlank { "未知" } }
+                    val intentionTone = when (c.intention) {
+                        "高" -> BadgeTone.SUCCESS
+                        "中" -> BadgeTone.GOLD
+                        "低" -> BadgeTone.WARN
+                        else -> if (c.gender == "女") BadgeTone.GOLD else BadgeTone.SUCCESS
+                    }
                     Item(
                         title = c.name,
                         subtitle = "$extras\n$visitLine",
-                        badge = c.intention.ifBlank { c.gender.ifBlank { "未知" } },
-                        badgeTone = when (c.intention) {
-                            "高" -> BadgeTone.SUCCESS
-                            "中" -> BadgeTone.GOLD
-                            "低" -> BadgeTone.WARN
-                            else -> if (c.gender == "女") BadgeTone.GOLD else BadgeTone.SUCCESS
+                        badge = intentionBadge,
+                        badgeTone = intentionTone,
+                        tags = buildList {
+                            if (c.order_count > 0) add("单" to BadgeTone.GOLD)
+                            if (c.visit_count > 0) add("回" to BadgeTone.MUTED)
                         },
                         onClick = { openEditor(c) },
                         actionLabel = "开单",
