@@ -2,6 +2,7 @@ package com.hairclinic.app.ui.customers
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.hairclinic.app.data.ApiClient
@@ -9,6 +10,7 @@ import com.hairclinic.app.data.CustomerPhoto
 import com.hairclinic.app.databinding.ItemCustomerPhotoBinding
 
 class CustomerPhotoAdapter(
+    private val onClick: (CustomerPhoto) -> Unit,
     private val onDelete: (CustomerPhoto) -> Unit,
 ) : RecyclerView.Adapter<CustomerPhotoAdapter.VH>() {
     private val items = mutableListOf<CustomerPhoto>()
@@ -37,6 +39,11 @@ class CustomerPhotoAdapter(
             binding.photoImage.load(url, ApiClient.imageLoader(context)) {
                 crossfade(true)
             }
+            val date = photo.dateText()
+            binding.photoDate.text = date
+            binding.photoDate.isVisible = date.isNotBlank()
+            binding.photoImage.setOnClickListener { onClick(photo) }
+            binding.root.setOnClickListener { onClick(photo) }
             binding.deleteBtn.setOnClickListener { onDelete(photo) }
         }
     }

@@ -57,6 +57,7 @@ class CustomerPhoto(Base):
     stored_name: Mapped[str] = mapped_column(String(128), nullable=False)
     original_name: Mapped[str] = mapped_column(String(255), default="")
     mime_type: Mapped[str] = mapped_column(String(64), default="image/jpeg")
+    taken_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     customer: Mapped["Customer"] = relationship("Customer", back_populates="photos")

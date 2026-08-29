@@ -1,6 +1,8 @@
 package com.hairclinic.app.data
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import coil.ImageLoader
 import com.hairclinic.app.BuildConfig
 import com.hairclinic.app.R
@@ -15,6 +17,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 object Session {
     private const val PREF = "hair_clinic"
@@ -204,6 +207,29 @@ object Session {
     }
 }
 
+/** Token 失效时统一清会话并通知界面跳转登录。 */
+object AuthExpired {
+    private val handling = AtomicBoolean(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile private var onExpired: (() -> Unit)? = null
+
+    fun setHandler(handler: (() -> Unit)?) {
+        onExpired = handler
+    }
+
+    fun notifyIfNeeded(context: Context) {
+        if (!handling.compareAndSet(false, true)) return
+        Session.clear(context.applicationContext)
+        mainHandler.post {
+            try {
+                onExpired?.invoke()
+            } finally {
+                handling.set(false)
+            }
+        }
+    }
+}
+
 object ApiClient {
     @Volatile private var api: ApiService? = null
     @Volatile private var boundUrl: String? = null
@@ -250,6 +276,14 @@ object ApiClient {
             } else chain.request()
             chain.proceed(req)
         }
+        val unauthorized = Interceptor { chain ->
+            val request = chain.request()
+            val response = chain.proceed(request)
+            if (response.code == 401 && !isAuthLoginRequest(request.url.encodedPath)) {
+                AuthExpired.notifyIfNeeded(appContext)
+            }
+            response
+        }
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
@@ -258,8 +292,14 @@ object ApiClient {
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .addInterceptor(auth)
+            .addInterceptor(unauthorized)
             .addInterceptor(logging)
             .build()
+    }
+
+    private fun isAuthLoginRequest(path: String): Boolean {
+        val p = path.trimEnd('/')
+        return p.endsWith("/api/auth/login") || p.endsWith("/api/auth/token")
     }
 
     suspend fun uploadCustomerPhoto(

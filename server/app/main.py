@@ -27,6 +27,9 @@ def migrate_schema() -> None:
             conn.execute(text("ALTER TABLE customers ADD COLUMN intention VARCHAR(16) DEFAULT ''"))
         if cols and "assigned_to" not in cols:
             conn.execute(text("ALTER TABLE customers ADD COLUMN assigned_to INTEGER REFERENCES admins(id)"))
+        phcols = [row[1] for row in conn.execute(text("PRAGMA table_info(customer_photos)")).fetchall()]
+        if phcols and "taken_at" not in phcols:
+            conn.execute(text("ALTER TABLE customer_photos ADD COLUMN taken_at DATETIME"))
         pcols = [row[1] for row in conn.execute(text("PRAGMA table_info(projects)")).fetchall()]
         if pcols and "unit" not in pcols:
             conn.execute(text("ALTER TABLE projects ADD COLUMN unit VARCHAR(16) DEFAULT '个'"))

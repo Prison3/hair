@@ -27,10 +27,12 @@ import com.hairclinic.app.data.Order
 import com.hairclinic.app.data.Session
 import com.hairclinic.app.data.StaffOption
 import com.hairclinic.app.data.formatVisitTime
+import com.hairclinic.app.databinding.DialogPhotoPreviewBinding
 import com.hairclinic.app.databinding.DialogVisitBinding
 import com.hairclinic.app.databinding.FragmentCustomerEditBinding
 import com.hairclinic.app.databinding.ItemVisitBinding
 import com.hairclinic.app.ui.billing.BillingFragment
+import coil.load
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -108,14 +110,39 @@ class CustomerEditFragment : Fragment() {
     }
 
     private fun setupPhotoSection() {
-        beforePhotoAdapter = CustomerPhotoAdapter { confirmDeletePhoto(it) }
-        afterPhotoAdapter = CustomerPhotoAdapter { confirmDeletePhoto(it) }
+        beforePhotoAdapter = CustomerPhotoAdapter(
+            onClick = { showPhotoPreview(it) },
+            onDelete = { confirmDeletePhoto(it) },
+        )
+        afterPhotoAdapter = CustomerPhotoAdapter(
+            onClick = { showPhotoPreview(it) },
+            onDelete = { confirmDeletePhoto(it) },
+        )
         binding.beforePhotoList.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.afterPhotoList.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.beforePhotoList.adapter = beforePhotoAdapter
         binding.afterPhotoList.adapter = afterPhotoAdapter
+    }
+
+    private fun showPhotoPreview(photo: CustomerPhoto) {
+        val dialogBinding = DialogPhotoPreviewBinding.inflate(layoutInflater)
+        val url = ApiClient.photoUrl(requireContext(), photo.url)
+        dialogBinding.previewImage.load(url, ApiClient.imageLoader(requireContext())) {
+            crossfade(true)
+        }
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogBinding.root)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialogBinding.closeBtn.setOnClickListener { dialog.dismiss() }
+        dialogBinding.previewImage.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+        )
     }
 
     private fun showPhotoSection() {

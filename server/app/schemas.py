@@ -190,6 +190,7 @@ class CustomerPhotoOut(BaseModel):
     kind: str
     url: str
     original_name: str = ""
+    taken_at: Optional[datetime] = None
     created_at: datetime
 
 

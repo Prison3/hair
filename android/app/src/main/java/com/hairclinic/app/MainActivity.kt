@@ -2,16 +2,19 @@ package com.hairclinic.app
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.hairclinic.app.data.ApiClient
+import com.hairclinic.app.data.AuthExpired
 import com.hairclinic.app.data.Session
 import com.hairclinic.app.databinding.ActivityMainBinding
 import com.hairclinic.app.update.AppUpdateHelper
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -26,6 +29,17 @@ class MainActivity : AppCompatActivity() {
 
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
         val navController = navHost.navController
+        AuthExpired.setHandler {
+            if (isFinishing || isDestroyed) return@setHandler
+            Toast.makeText(this, "登录已过期，请重新登录", Toast.LENGTH_SHORT).show()
+            if (navController.currentDestination?.id != R.id.loginFragment) {
+                val options = NavOptions.Builder()
+                    .setPopUpTo(navController.graph.id, true)
+                    .setLaunchSingleTop(true)
+                    .build()
+                navController.navigate(R.id.loginFragment, null, options)
+            }
+        }
         binding.bottomNav.setupWithNavController(navController)
         applyRoleTabs()
 
@@ -105,9 +119,17 @@ class MainActivity : AppCompatActivity() {
                 )
                 applyRoleTabs()
                 binding.userChip.text = me.username
+            } catch (e: HttpException) {
+                if (e.code() == 401) AuthExpired.notifyIfNeeded(this@MainActivity)
             } catch (_: Exception) {
             }
         }
+    }
+
+    override fun onDestroy() {
+        AuthExpired.setHandler(null)
+        if (::appUpdate.isInitialized) appUpdate.dismiss()
+        super.onDestroy()
     }
 
     fun refreshUsername() {
@@ -120,8 +142,4 @@ class MainActivity : AppCompatActivity() {
         refreshRole()
     }
 
-    override fun onDestroy() {
-        if (::appUpdate.isInitialized) appUpdate.dismiss()
-        super.onDestroy()
-    }
 }

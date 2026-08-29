@@ -94,8 +94,12 @@ data class CustomerPhoto(
     val kind: String,
     val url: String,
     val original_name: String = "",
+    val taken_at: String? = null,
     val created_at: String? = null,
-)
+) {
+    /** 业务提交时间（本地时区，精确到秒）。 */
+    fun dateText(): String = formatVisitTimeSeconds(created_at ?: taken_at)
+}
 
 data class CustomerVisit(
     val id: Int? = null,
@@ -131,6 +135,33 @@ fun formatVisitTime(raw: String?): String {
         local.format(parsed)
     } catch (_: Exception) {
         trimmed.replace('T', ' ').replace('Z', ' ').trim().take(16)
+    }
+}
+
+/** 同 formatVisitTime，精确到秒。 */
+fun formatVisitTimeSeconds(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    val trimmed = raw.trim()
+    val normalized = trimmed.replace(' ', 'T')
+    if (normalized.length <= 10 && !normalized.contains('T')) {
+        return trimmed.take(10)
+    }
+    val head = normalized.removeSuffix("Z").take(19)
+    if (head.length < 19) {
+        return trimmed.replace('T', ' ').replace('Z', ' ').trim().take(19)
+    }
+    return try {
+        val utc = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+            isLenient = false
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+        val local = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).apply {
+            isLenient = false
+        }
+        val parsed = utc.parse(head) ?: return trimmed.replace('T', ' ').trim().take(19)
+        local.format(parsed)
+    } catch (_: Exception) {
+        trimmed.replace('T', ' ').replace('Z', ' ').trim().take(19)
     }
 }
 

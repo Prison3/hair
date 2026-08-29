@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
@@ -94,6 +95,7 @@ def _photo_out(photo: CustomerPhoto) -> CustomerPhotoOut:
         kind=photo.kind,
         url=f"/api/customers/{photo.customer_id}/photos/{photo.id}/content",
         original_name=photo.original_name or "",
+        taken_at=photo.taken_at,
         created_at=photo.created_at,
     )
 
@@ -158,7 +160,7 @@ def create_customer(
 @router.get("/{customer_id}/photos", response_model=List[CustomerPhotoOut])
 def list_photos(
     customer_id: int,
-    kind: Optional[str] = Query(None, description="BEFORE=手术前, AFTER=手术后"),
+    kind: Optional[str] = Query(None, description="BEFORE=前照片, AFTER=后照片"),
     db: Session = Depends(get_db),
     _: Admin = Depends(get_current_admin),
 ):
@@ -166,7 +168,7 @@ def list_photos(
     query = (
         db.query(CustomerPhoto)
         .filter(CustomerPhoto.customer_id == customer_id)
-        .order_by(CustomerPhoto.id.asc())
+        .order_by(CustomerPhoto.created_at.asc(), CustomerPhoto.id.asc())
     )
     if kind:
         query = query.filter(CustomerPhoto.kind == validate_kind(kind))
@@ -184,12 +186,15 @@ async def upload_photo(
     _get_customer(db, customer_id)
     kind_value = validate_kind(kind)
     stored_name, original_name, mime_type = await save_upload(customer_id, kind_value, file)
+    now = datetime.utcnow()
     photo = CustomerPhoto(
         customer_id=customer_id,
         kind=kind_value,
         stored_name=stored_name,
         original_name=original_name,
         mime_type=mime_type,
+        taken_at=now,
+        created_at=now,
     )
     db.add(photo)
     db.commit()
