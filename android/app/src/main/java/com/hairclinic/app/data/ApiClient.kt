@@ -3,6 +3,7 @@ package com.hairclinic.app.data
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import androidx.exifinterface.media.ExifInterface
 import coil.ImageLoader
 import com.hairclinic.app.BuildConfig
 import com.hairclinic.app.R
@@ -16,6 +17,9 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -314,6 +318,7 @@ object ApiClient {
         val ext = when {
             mime.contains("png") -> "png"
             mime.contains("webp") -> "webp"
+            mime.contains("heic") || mime.contains("heif") -> "heic"
             else -> "jpg"
         }
         val temp = File.createTempFile("upload_", ".$ext", appContext.cacheDir)
@@ -324,9 +329,31 @@ object ApiClient {
             val fileBody = temp.asRequestBody(mime.toMediaTypeOrNull())
             val filePart = MultipartBody.Part.createFormData("file", "photo.$ext", fileBody)
             val kindBody = kind.toRequestBody("text/plain".toMediaTypeOrNull())
-            return get(appContext).uploadCustomerPhoto(customerId, kindBody, filePart)
+            val takenAtIso = readPhotoTakenAtUtcIso(temp)
+            val takenBody = takenAtIso?.toRequestBody("text/plain".toMediaTypeOrNull())
+            return get(appContext).uploadCustomerPhoto(customerId, kindBody, takenBody, filePart)
         } finally {
             temp.delete()
+        }
+    }
+
+    /** 从 EXIF 读取拍摄时间，按上海时区转为 UTC ISO（yyyy-MM-dd'T'HH:mm:ss）。 */
+    private fun readPhotoTakenAtUtcIso(file: File): String? {
+        return try {
+            val exif = ExifInterface(file.absolutePath)
+            val raw = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+                ?: exif.getAttribute(ExifInterface.TAG_DATETIME_DIGITIZED)
+                ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
+                ?: return null
+            val local = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).apply {
+                isLenient = false
+                timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+            }.parse(raw.trim()) ?: return null
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }.format(local)
+        } catch (_: Exception) {
+            null
         }
     }
 

@@ -1,21 +1,27 @@
 package com.hairclinic.app.ui.customers
 
 import android.app.DatePickerDialog
+import android.app.Dialog
 import android.app.TimePickerDialog
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputLayout
 import com.hairclinic.app.R
@@ -32,7 +38,6 @@ import com.hairclinic.app.databinding.DialogVisitBinding
 import com.hairclinic.app.databinding.FragmentCustomerEditBinding
 import com.hairclinic.app.databinding.ItemVisitBinding
 import com.hairclinic.app.ui.billing.BillingFragment
-import coil.load
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -132,17 +137,22 @@ class CustomerEditFragment : Fragment() {
         dialogBinding.previewImage.load(url, ApiClient.imageLoader(requireContext())) {
             crossfade(true)
         }
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setView(dialogBinding.root)
-            .create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val dialog = Dialog(requireContext(), android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(dialogBinding.root)
+        dialog.setCancelable(true)
+        dialog.window?.apply {
+            setLayout(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+            )
+            setBackgroundDrawable(Color.BLACK.toDrawable())
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        }
         dialogBinding.closeBtn.setOnClickListener { dialog.dismiss() }
         dialogBinding.previewImage.setOnClickListener { dialog.dismiss() }
+        dialogBinding.root.setOnClickListener { dialog.dismiss() }
         dialog.show()
-        dialog.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-        )
     }
 
     private fun showPhotoSection() {

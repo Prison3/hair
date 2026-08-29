@@ -12,6 +12,8 @@ from ..auth import get_current_admin, is_admin, role_label
 from ..customer_photos import (
     delete_customer_photo_files,
     delete_photo_file,
+    extract_taken_at_utc,
+    parse_taken_at,
     photo_file_path,
     save_upload,
     validate_kind,
@@ -168,7 +170,7 @@ def list_photos(
     query = (
         db.query(CustomerPhoto)
         .filter(CustomerPhoto.customer_id == customer_id)
-        .order_by(CustomerPhoto.created_at.asc(), CustomerPhoto.id.asc())
+        .order_by(CustomerPhoto.taken_at.asc(), CustomerPhoto.created_at.asc(), CustomerPhoto.id.asc())
     )
     if kind:
         query = query.filter(CustomerPhoto.kind == validate_kind(kind))
@@ -180,6 +182,7 @@ async def upload_photo(
     customer_id: int,
     kind: str = Form(...),
     file: UploadFile = File(...),
+    taken_at: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     _: Admin = Depends(get_current_admin),
 ):
@@ -187,13 +190,19 @@ async def upload_photo(
     kind_value = validate_kind(kind)
     stored_name, original_name, mime_type = await save_upload(customer_id, kind_value, file)
     now = datetime.utcnow()
+    # 优先：客户端 EXIF → 服务端读文件 EXIF → 业务提交时间
+    photo_time = (
+        parse_taken_at(taken_at)
+        or extract_taken_at_utc(photo_file_path(customer_id, stored_name))
+        or now
+    )
     photo = CustomerPhoto(
         customer_id=customer_id,
         kind=kind_value,
         stored_name=stored_name,
         original_name=original_name,
         mime_type=mime_type,
-        taken_at=now,
+        taken_at=photo_time,
         created_at=now,
     )
     db.add(photo)

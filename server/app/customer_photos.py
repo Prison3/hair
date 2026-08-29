@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import re
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, UploadFile
 
@@ -21,6 +23,7 @@ ALLOWED_MIME = {
     "image/heic": ".heic",
     "image/heif": ".heif",
 }
+TZ_SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
 def customer_photo_dir(customer_id: int) -> Path:
@@ -51,6 +54,61 @@ def guess_ext(filename: str, content_type: str) -> str:
         if name.endswith(ext):
             return ext if ext != ".jpeg" else ".jpg"
     return ".jpg"
+
+
+def parse_taken_at(value: str | None) -> datetime | None:
+    """Parse client-provided taken_at as UTC naive datetime."""
+    if not value:
+        return None
+    text = value.strip().replace(" ", "T").removesuffix("Z")
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%d"):
+        try:
+            sample = text[:26] if "." in text else text[:19]
+            if fmt == "%Y-%m-%d":
+                sample = text[:10]
+            return datetime.strptime(sample, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _exif_local_to_utc(raw: str) -> datetime | None:
+    text = (raw or "").strip()
+    if not text:
+        return None
+    try:
+        local = datetime.strptime(text, "%Y:%m:%d %H:%M:%S")
+    except ValueError:
+        try:
+            local = datetime.strptime(text.replace("-", ":")[:19], "%Y:%m:%d %H:%M:%S")
+        except ValueError:
+            return None
+    return local.replace(tzinfo=TZ_SHANGHAI).astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def extract_taken_at_utc(path: Path) -> datetime | None:
+    """Prefer EXIF DateTimeOriginal from the image file; assume Asia/Shanghai when no TZ."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    try:
+        with Image.open(path) as img:
+            exif = img.getexif()
+            if not exif:
+                return None
+            raw = None
+            try:
+                ifd = exif.get_ifd(0x8769)
+                raw = ifd.get(36867) or ifd.get(36868)  # DateTimeOriginal / Digitized
+            except Exception:
+                pass
+            raw = raw or exif.get(306)  # DateTime
+            if not raw:
+                return None
+            return _exif_local_to_utc(str(raw))
+    except Exception:
+        return None
 
 
 async def save_upload(customer_id: int, kind: str, upload: UploadFile) -> tuple[str, str, str]:

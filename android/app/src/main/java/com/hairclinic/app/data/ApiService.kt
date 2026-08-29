@@ -80,6 +80,7 @@ interface ApiService {
     suspend fun uploadCustomerPhoto(
         @Path("id") customerId: Int,
         @Part("kind") kind: RequestBody,
+        @Part("taken_at") takenAt: RequestBody?,
         @Part file: MultipartBody.Part,
     ): CustomerPhoto
 

@@ -97,8 +97,8 @@ data class CustomerPhoto(
     val taken_at: String? = null,
     val created_at: String? = null,
 ) {
-    /** 业务提交时间（本地时区，精确到秒）。 */
-    fun dateText(): String = formatVisitTimeSeconds(created_at ?: taken_at)
+    /** 优先照片拍摄时间，否则业务提交时间（本地时区，精确到秒）。 */
+    fun dateText(): String = formatVisitTimeSeconds(taken_at ?: created_at)
 }
 
 data class CustomerVisit(

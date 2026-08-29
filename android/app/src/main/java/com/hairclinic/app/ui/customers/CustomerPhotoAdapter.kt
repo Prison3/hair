@@ -42,7 +42,10 @@ class CustomerPhotoAdapter(
             val date = photo.dateText()
             binding.photoDate.text = date
             binding.photoDate.isVisible = date.isNotBlank()
+            binding.photoImage.isClickable = true
+            binding.photoImage.isFocusable = true
             binding.photoImage.setOnClickListener { onClick(photo) }
+            binding.photoDate.setOnClickListener { onClick(photo) }
             binding.root.setOnClickListener { onClick(photo) }
             binding.deleteBtn.setOnClickListener { onDelete(photo) }
         }

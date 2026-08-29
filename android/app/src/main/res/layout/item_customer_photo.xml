@@ -9,7 +9,9 @@
         android:layout_width="match_parent"
         android:layout_height="96dp"
         android:background="@drawable/bg_form_panel"
+        android:clickable="true"
         android:contentDescription="客户照片"
+        android:focusable="true"
         android:scaleType="centerCrop" />
 
     <TextView
